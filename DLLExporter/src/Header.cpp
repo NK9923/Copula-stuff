@@ -1,221 +1,396 @@
 #include "pch.h"
 #include "Header.h"
 
-class StatsFunctions {
-    public:
-        std::map<std::string, double> fitMoments(const std::vector<double>& data) {
-            std::map<std::string, double> result;
+#ifdef _M_X64
+#include <pybind11/embed.h>  // py::scoped_interpreter
+#include <pybind11/stl.h>    // bindings from C++ STL containers to Python types
+namespace py = pybind11;
+py::scoped_interpreter guard{};
+namespace py = pybind11;
+using namespace py::literals;
+#endif
 
-            double locHat = mean(data);
-            double sig2Hat = variance(data);
+void copula::getwd() {
+    std::filesystem::path currentPath = std::filesystem::current_path();
+    std::cout << "Current Working Directory: " << currentPath << std::endl;
+}
 
-            result["shape"] = calculateShape(locHat, sig2Hat);
-            result["scale"] = calculateScale(locHat, result["shape"]);
-            result["loc"] = locHat;
+// CLASS Differentiation contains hessian and gradient computation
+std::vector<double> copula::differentiation::gradient(double (*f)(const std::vector<double>&), const std::vector<double>& x0, double heps) {
+    int n = x0.size();
+    std::vector<double> gr(n, 0.0);
 
-            return result;
+    for (int i = 0; i < n; ++i) {
+        std::vector<double> x_plus_h = x0;
+        std::vector<double> x_minus_h = x0;
+
+        x_plus_h[i] += heps;
+        x_minus_h[i] -= heps;
+
+        gr[i] = (f(x_plus_h) - f(x_minus_h)) / (2 * heps);
+    }
+
+    return gr;
+}
+
+//========================================
+
+// Statsfunctions
+std::map<std::string, double> copula::StatsFunctions::fitMoments(const std::vector<double>& data) {
+    std::map<std::string, double> result;
+
+    double locHat = this->mean(data);
+    double sig2Hat = this->variance(data);
+
+    result["shape"] = this->calculateShape(locHat, sig2Hat);
+    result["scale"] = this->calculateScale(locHat, result["shape"]);
+    result["loc"] = locHat;
+
+    return result;
+}
+
+inline double copula::StatsFunctions::calculateShape(double locHat, double sig2Hat) const {
+    return (1 - std::pow(locHat, 2) / sig2Hat) / 2;
+}
+
+inline double copula::StatsFunctions::calculateScale(double locHat, double shapeHat) const {
+    return max(locHat * (1 - shapeHat), std::numeric_limits<double>::epsilon());
+}
+
+inline double copula::StatsFunctions::mean(const std::vector<double>& data) const {
+    if (data.empty()) {
+        return 0.0;
+    }
+    double sum = 0.0;
+    for (const double& value : data) {
+        sum += value;
+    }
+    return sum / data.size();
+}
+
+inline double copula::StatsFunctions::variance(const std::vector<double>& data) const {
+    if (data.empty()) {
+        return 0.0;
+    }
+    double meanValue = this->mean(data);
+    double sumSquaredDifferences = 0.0;
+    for (const double& value : data) {
+        double difference = value - meanValue;
+        sumSquaredDifferences += difference * difference;
+    }
+    return sumSquaredDifferences / data.size();
+}
+
+inline double copula::StatsFunctions::skewness(const std::vector<double>& data) const {
+    double meanValue = this->mean(data);
+    double varianceValue = std::sqrt(variance(data));
+
+    double skewness = 0.0;
+    for (const double& value : data) {
+        double deviation = value - meanValue;
+        skewness += std::pow(deviation / varianceValue, 3);
+    }
+    skewness /= data.size();
+    return skewness;
+}
+
+inline double copula::StatsFunctions::kurtosis(const std::vector<double>& data) const {
+    double meanValue = this->mean(data);
+    double varianceValue = std::sqrt(variance(data));
+
+    double kurtosis = 0.0;
+    for (const double& value : data) {
+        double deviation = value - meanValue;
+        kurtosis += std::pow(deviation, 4);
+    }
+    kurtosis /= (data.size() * std::pow(varianceValue, 2));
+
+    return kurtosis;
+}
+
+std::vector<double> copula::StatsFunctions::generate_uniform(int N_sim) {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<double> dis(0.0, 1.0);
+    std::vector<double> randomValues;
+
+    for (int i = 0; i < N_sim; ++i) {
+        randomValues.push_back(dis(gen));
+    }
+    return randomValues;
+}    
+
+std::vector<double> copula::StatsFunctions::generate_gaussian(int N_sim, double mean, double stddev) {
+    
+    std::mt19937 gen(std::random_device{}());
+    std::normal_distribution<double> norm(mean, stddev);
+    std::vector<double> randomValues;
+
+
+    for (int i = 0; i < N_sim; ++i) {
+        randomValues.push_back(norm(gen));
+    }
+    return randomValues;
+}
+
+std::vector<double> copula::StatsFunctions::generate_pareto(int N, double g, double k) {
+    if (k <= 0 || g <= 0) {
+        throw std::invalid_argument("Both k and g should be greater than 0.");
+    }
+
+    std::mt19937 gen(std::random_device{}());
+    std::uniform_real_distribution<double> dis(0.0, 1.0);
+
+    std::vector<double> randomValues;
+
+    for (int i = 0; i < N; ++i) {
+        randomValues.push_back(k * std::pow(1 - dis(gen), -1 / g));
+    }
+
+    return randomValues;
+}
+
+std::vector<double> copula::StatsFunctions::generate_cauchy(int N, double location, double scale) {
+    std::mt19937 gen(std::random_device{}());
+    std::cauchy_distribution<double> dis(location, scale);
+
+    std::vector<double> randomValues;
+
+    for (int i = 0; i < N; ++i) {
+        randomValues.push_back(dis(gen));
+    }
+
+    return randomValues;
+}
+
+std::vector<double> copula::StatsFunctions::generate_beta(int N, double alpha, double beta) {
+    if (alpha <= 0.0 || beta <= 0.0) {
+        throw std::invalid_argument("Both alpha and beta should be greater than 0.");
+    }
+
+    std::mt19937 gen(std::random_device{}());
+    std::uniform_real_distribution<double> dis(0.0, 1.0);
+
+    std::vector<double> randomValues;
+
+    for (int i = 0; i < N; ++i) {
+        double u1 = dis(gen);
+        double u2 = dis(gen);
+
+        double betaValue = std::pow(u1, 1.0 / alpha);
+        double invBeta = std::pow(1.0 / u2, 1.0 / beta);
+
+        randomValues.push_back(betaValue / (betaValue + invBeta));
+    }
+
+    return randomValues;
+}
+
+void copula::StatsFunctions::plotDistribution(std::vector<double>& data) {
+    #ifdef _M_X64
+        std::vector<double> bins(1000);
+        py::module plt = py::module::import("matplotlib.pyplot");
+
+        try {
+            plt.attr("hist")(data, "bins"_a = 50);
+            plt.attr("show")();
         }
-
-        inline double calculateShape(double locHat, double sig2Hat) const {
-            return (1 - std::pow(locHat, 2) / sig2Hat) / 2;
+        catch (const std::exception& ex) {
+            std::cerr << "C++ Exception: " << ex.what() << std::endl;
         }
+    #endif
+}
 
-        inline double calculateScale(double locHat, double shapeHat) const {
-            return max(locHat * (1 - shapeHat), std::numeric_limits<double>::epsilon());
+std::pair<double, bool> copula::StatsFunctions::rlogseries_ln1p(double a, double cutoff) {
+
+    if (a <= 0) {
+        std::cout << "Warning a needs to be bigger than 0";
+        return std::make_pair(0.0, false);
+    }
+
+    double val1, val2;
+    try {
+        val1 = std::log(-std::expm1(-a));
+
+        if (std::isnan(val1)) {
+            throw std::invalid_argument("val1 is NaN");
         }
+    }
+    catch (const std::exception& e) {
+        std::cout << "Exception caught while calculating val1: " << e.what() << std::endl;
+        val1 = 0;
+    }
 
-        inline double mean(const std::vector<double>& data) const {
-            if (data.empty()) {
-                return 0.0;
-            }
-            double sum = 0.0;
-            for (const double& value : data) {
-                sum += value;
-            }
-            return sum / data.size();
+    try {
+        val2 = std::log1p(-std::exp(-a));
+
+        if (std::isnan(val2)) {
+            std::cout << "Warning: val2 is not a number" << std::endl;
         }
+    }
+    catch (const std::exception& e) {
+        std::cout << "Exception caught while calculating val2: " << e.what() << std::endl;
+        val2 = 0;
+    }
+    return std::make_pair((val1 != 0.0) ? val1 : val2, (val1 != 0.0) || (val2 != 0.0));
+}
 
-        inline double variance(const std::vector<double>& data) const {
-            if (data.empty()) {
-                return 0.0;
-            }
-            double meanValue = mean(data);
-            double sumSquaredDifferences = 0.0;
-            for (const double& value : data) {
-                double difference = value - meanValue;
-                sumSquaredDifferences += difference * difference;
-            }
-            return sumSquaredDifferences / data.size();
-        }
+//========================================
 
-        inline double skewness(const std::vector<double>& data) const {
-            double meanValue = mean(data);
-            double varianceValue = std::sqrt(variance(data));
+// ECDF
+copula::ECDF::ECDF(const std::vector<double>& data) {
+    sorted_data = data;
+    std::sort(sorted_data.begin(), sorted_data.end());
 
-            double skewness = 0.0;
-            for (const double& value : data) {
-                double deviation = value - meanValue;
-                skewness += std::pow(deviation / varianceValue, 3);
-            }
-            skewness /= data.size();
-            return skewness;
-        }
+    std::vector<double>::iterator it = std::unique(sorted_data.begin(), sorted_data.end());
+    sorted_data.resize(std::distance(sorted_data.begin(), it));
 
-        inline double kurtosis(const std::vector<double>& data) const {
-            double meanValue = mean(data);
-            double varianceValue = std::sqrt(variance(data));
+    // Berechne die ECDF-Werte
+    size_t n = sorted_data.size();
+    ecdf_values.resize(n);
+    for (size_t i = 0; i < n; ++i) {
+        ecdf_values[i] = static_cast<double>(i + 1) / n;
+    }
+}
 
-            double kurtosis = 0.0;
-            for (const double& value : data) {
-                double deviation = value - meanValue;
-                kurtosis += std::pow(deviation, 4);
-            }
-            kurtosis /= (data.size() * std::pow(varianceValue, 2));
+double copula::ECDF::operator()(double x) const {
+    auto it = std::lower_bound(sorted_data.begin(), sorted_data.end(), x);
+    if (it == sorted_data.end()) {
+        return 1.0;
+    }
+    else {
+        size_t index = std::distance(sorted_data.begin(), it);
+        return ecdf_values[index];
+    }
+}
 
-            return kurtosis;
-        }
+inline double copula::ECDF::head_ecdf(int min_obs) const {
+    if (min_obs <= 0) {
+        return 0.0;
+    }
+    min_obs = min(min_obs, static_cast<int>(sorted_data.size()));
+    return ecdf_values[min_obs - 1];
+}
 
-        template <typename T1, typename T2>
-        static inline typename T1::value_type Quantile(const T1& x, T2 q) {
-            assert(q >= 0.0 && q <= 1.0);
+//========================================
 
-            using ValueType = typename T1::value_type;
-            std::vector<ValueType> data(std::begin(x), std::end(x));
-            data.erase(std::remove_if(data.begin(), data.end(), [](ValueType val) { return std::isnan(val); }), data.end());
-            std::sort(data.begin(), data.end());
+// Frank Copula implementation
 
-            const auto n = data.size();
-            const auto id = static_cast<typename T1::size_type>((n - 1) * q);
-            const auto lo = static_cast<typename T1::size_type>(std::floor(id));
-            const auto hi = static_cast<typename T1::size_type>(std::ceil(id));
-            const auto qs = data[lo];
-            const auto h = id - lo;
+inline void copula::FrankCopula::PrintInfo() {
+    std::cout << "== Frank Copula ===" << std::endl;
+    std::cout << "Dimension: " << dim << std::endl;
+    std::cout << "Alpha: " << alpha << std::endl;
+}
 
-            return (1.0 - h) * qs + h * data[hi];
-        }
-
-        std::vector<double> generate_runif(int N_sim) {
-            std::random_device rd;
-            std::mt19937 gen(rd());
-            std::uniform_real_distribution<double> dis(0.0, 1.0);
-            std::vector<double> randomValues;
-
-            for (int i = 0; i < N_sim; ++i) {
-                randomValues.push_back(dis(gen));
-            }
-            return randomValues;
-        }    
-
-        std::vector<double> generate_gaussian(int N_sim, double mean, double stddev) {
-            std::random_device rd;
-            std::mt19937 gen(rd());
-            std::normal_distribution<double> dis(mean, stddev);
-            std::vector<double> randomValues;
-
-            for (int i = 0; i < N_sim; ++i) {
-                randomValues.push_back(dis(gen));
-            }
-            return randomValues;
-        }
-
-        std::vector<double> generate_pareto(int N, double g, double k) {
-            if (k <= 0 || g <= 0) {
-                throw std::invalid_argument("Both k and g should be greater than 0.");
-            }
-
-            std::random_device rd;
-            std::mt19937 gen(rd());
-            std::uniform_real_distribution<double> dis(0.0, 1.0);
-
-            std::vector<double> randomValues;
-
-            for (int i = 0; i < N; ++i) {
-                randomValues.push_back(k * std::pow(1 - dis(gen), -1 / g));
-            }
-
-            return randomValues;
-        }
-
-        std::vector<double> generate_cauchy(int N, double location, double scale) {
-            std::random_device rd;
-            std::mt19937 gen(rd());
-            std::cauchy_distribution<double> dis(location, scale);
-
-            std::vector<double> randomValues;
-
-            for (int i = 0; i < N; ++i) {
-                randomValues.push_back(dis(gen));
-            }
-
-            return randomValues;
-        }
-
-        std::vector<double> generate_beta(int N, double alpha, double beta) {
-            if (alpha <= 0.0 || beta <= 0.0) {
-                throw std::invalid_argument("Both alpha and beta should be greater than 0.");
-            }
-
-            std::random_device rd;
-            std::mt19937 gen(rd());
-            std::uniform_real_distribution<double> dis(0.0, 1.0);
-
-            std::vector<double> randomValues;
-
-            for (int i = 0; i < N; ++i) {
-                double u1 = dis(gen);
-                double u2 = dis(gen);
-
-                double betaValue = std::pow(u1, 1.0 / alpha);
-                double invBeta = std::pow(1.0 / u2, 1.0 / beta);
-
-                randomValues.push_back(betaValue / (betaValue + invBeta));
-            }
-
-            return randomValues;
-        }
+// CDF of the Frank copula
+inline double copula::FrankCopula::cdfExpr(const std::vector<double>& u, int dim) {
+    double sum = 0.0;
+    for (int i = 0; i < dim; ++i) {
+        sum += -log((exp(-alpha * u[i]) - 1) / (exp(-alpha) - 1));
+    }
+    return -1.0 / alpha * log(1.0 + exp(-sum) * (exp(-alpha) - 1));
 };
 
-class ECDF {
-    public:
-        ECDF(const std::vector<double>& data) {
-            sorted_data = data;
-            std::sort(sorted_data.begin(), sorted_data.end());
+// PDF of the Frank copula
+inline double copula::FrankCopula::pdfExpr(const std::vector<double>& u) {
+    double term1 = -log((exp(-alpha * u[0]) - 1) / (exp(-alpha) - 1)) +
+        -log((exp(-alpha * u[1]) - 1) / (exp(-alpha) - 1));
 
-            std::vector<double>::iterator it = std::unique(sorted_data.begin(), sorted_data.end());
-            sorted_data.resize(std::distance(sorted_data.begin(), it));
+    double term2 = exp(-term1) * (exp(-alpha * u[1]) * alpha / (exp(-alpha) - 1) /
+        ((exp(-alpha * u[1]) - 1) / (exp(-alpha) - 1))) *
+        (exp(-alpha * u[0]) * alpha / (exp(-alpha) - 1) /
+            ((exp(-alpha * u[0]) - 1) / (exp(-alpha) - 1))) *
+        (exp(-alpha) - 1) / (1 + exp(-term1) * (exp(-alpha) - 1));
 
-            // Berechne die ECDF-Werte
-            size_t n = sorted_data.size();
-            ecdf_values.resize(n);
-            for (size_t i = 0; i < n; ++i) {
-                ecdf_values[i] = static_cast<double>(i + 1) / n;
-            }
-        }
+    double term3 = exp(-term1) * (exp(-alpha * u[0]) * alpha / (exp(-alpha) - 1) /
+        ((exp(-alpha * u[0]) - 1) / (exp(-alpha) - 1))) *
+        (exp(-alpha) - 1) *
+        exp(-term1) * (exp(-alpha * u[1]) * alpha / (exp(-alpha) - 1) /
+            ((exp(-alpha * u[1]) - 1) / (exp(-alpha) - 1))) *
+        (exp(-alpha) - 1) / (1 + exp(-term1) * (exp(-alpha) - 1));
 
-        double operator()(double x) const {
-            auto it = std::lower_bound(sorted_data.begin(), sorted_data.end(), x);
-            if (it == sorted_data.end()) {
-                return 1.0;
-            }
-            else {
-                size_t index = std::distance(sorted_data.begin(), it);
-                return ecdf_values[index];
-            }
-        }
-
-        inline double head_ecdf(int min_obs) const {
-            if (min_obs <= 0) {
-                return 0.0;
-            }
-            min_obs = min(min_obs, static_cast<int>(sorted_data.size()));
-            return ecdf_values[min_obs - 1];
-        }
-    private:
-        std::vector<double> sorted_data;
-        std::vector<double> ecdf_values;
+    return -1.0 / alpha * (term2 - term3);
 };
 
+// Function to generate random samples from a multivariate Frank copula
+std::pair<std::vector<double>, std::vector<double>> copula::FrankCopula::rfrankCopula(int n) {
+    if (dim == 2) {
+        return rfrankBivCopula(n);
+    }
 
+    std::vector<double> samples_U;
+    std::vector<double> samples_V;
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<double> dist(0.0, 1.0);
+
+    if (copula::StatsFunctions().rlogseries_ln1p(2).first == 0) {
+        return std::make_pair(std::vector<double>{1}, std::vector<double>{1});
+    }
+
+    // Check for conditions and handle them accordingly
+    if (std::abs(alpha) < std::pow(std::numeric_limits<double>::epsilon(), 1.0 / 3)) {
+        std::cerr << "Alpha was chosen to be too small" << std::endl;
+        assert(false);
+    }
+    else {
+        // Generate samples using the log-series distribution and inverse psi function
+        // ...
+    }
+
+    return std::make_pair(samples_U, samples_V);
+}
+
+void copula::FrankCopula::PlotCopula(std::pair<std::vector<double>, std::vector<double>>& copula_data) {
+
+    #ifdef _M_X64
+    try {
+        const std::vector<double>& x = copula_data.first;
+        const std::vector<double>& y = copula_data.second;
+
+        py::module plt = py::module::import("matplotlib.pyplot");
+
+        plt.attr("scatter")(x, y, "alpha"_a = 0.5);
+        plt.attr("title")("Scatter Plot of Copula Samples");
+        plt.attr("xlabel")("X");
+        plt.attr("ylabel")("Y");
+        plt.attr("show")();
+    }
+    catch (const std::exception& ex) {
+        std::cerr << "C++ Exception: " << ex.what() << std::endl;
+    }
+    #endif
+}
+
+inline std::pair<std::vector<double>, std::vector<double>> copula::FrankCopula::rfrankBivCopula(int n) {
+    std::vector<double> U_samples;
+    std::vector<double> V_samples;
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<double> dist(0.0, 1.0);
+
+    double a = -std::abs(alpha);
+
+    // Generate samples
+    for (int i = 0; i < n; ++i) {
+        double U = dist(gen);
+        double V = dist(gen);
+
+        // Inversion of the Frank copula's CDF
+        V = -1 / a * log1p(-V * expm1(-a) / (exp(-a * U) * (V - 1) - V));
+
+        U_samples.push_back(U);
+        V_samples.push_back((alpha > 0) ? 1 - V : V);
+    }
+
+    return std::make_pair(U_samples, V_samples);
+}
+
+//========================================
+
+//Core Copula stuff
 copula::GPDResult copula::fit_GPD_PWM(const std::vector<double>& data) {
     GPDResult result;
     return GPDResult();
