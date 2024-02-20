@@ -83,13 +83,29 @@ int main()
     std::cout << val1 << std::endl;
 
     std::pair<std::vector<double>, std::vector<double>> copulaPair;
-    copulaPair = Frank.rfrankCopula(5000); // Random numbers from Frank Copula
+    copulaPair = Frank.rfrankCopula(5000); 
 
     #ifdef _M_X64
         Frank.PlotCopula(copulaPair);
-        py::finalize_interpreter();
     #endif
 
+    Eigen::VectorXd mean(2);
+    mean << 0, 0;
+
+    Eigen::MatrixXd sigma(2, 2);
+    sigma << 1, 0.7, 0.7, 1;
+
+    int Ntest = 1000;
+
+    copula::GaussCopula Gauss(false);
+
+    auto result_1 = Gauss.rGaussCopula(1000, mean, sigma, [](double x) { return copula::StatsFunctions::qunif(x); }, [](double x) { return copula::StatsFunctions::qunif(x); });
+
+    #ifdef _M_X64
+        Gauss.PlotCopula(result_1, sigma(0, 1));
+        py::finalize_interpreter();
+    #endif
+    
     std::cout << "Press Enter to exit...";
     std::cin.get();
 

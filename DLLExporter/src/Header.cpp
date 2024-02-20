@@ -10,6 +10,8 @@ namespace py = pybind11;
 using namespace py::literals;
 #endif
 
+# define M_PI 3.14159265358979323846
+
 void copula::getwd() {
     std::filesystem::path currentPath = std::filesystem::current_path();
     std::cout << "Current Working Directory: " << currentPath << std::endl;
@@ -235,15 +237,41 @@ std::pair<double, bool> copula::StatsFunctions::rlogseries_ln1p(double a, double
     return std::make_pair((val1 != 0.0) ? val1 : val2, (val1 != 0.0) || (val2 != 0.0));
 }
 
+float copula::StatsFunctions::erfinv(float x) {
+    float tt1, tt2, lnx, sgn;
+    sgn = (x < 0) ? -1.0f : 1.0f;
+
+    x = (1 - x) * (1 + x);
+    lnx = logf(x);
+
+    tt1 = 2 / (M_PI * 0.147) + 0.5f * lnx;
+    tt2 = 1 / (0.147) * lnx;
+
+    return(sgn * sqrtf(-tt1 + sqrtf(tt1 * tt1 - tt2)));
+}
+
+double copula::StatsFunctions::pnorm(double value) {
+    return 0.5 * erfc(-value * sqrt(0.5));
+}
+
+double copula::StatsFunctions::qnorm(double p, double mean, double sigma) {
+    return(mean + sigma * sqrt(2) * erfinv(2 * p - 1));
+}
+
+double copula::StatsFunctions::qunif(double p, double a, double b) {
+    if (p < 0) p = 0;
+    if (p > 1) p = 1;
+    return a + (b - a) * p;
+}
+
 //========================================
 
 void copula::GaussCopula::printMatrix(const Eigen::MatrixXd& matrix, const std::string& name) {
-    if (debug) {
+    if (this->debug) {
         std::cout << name << ":\n" << matrix << "\n\n";
     }
 }
 
-// Function to generate random multivariate normally distributed samples
 Eigen::MatrixXd copula::GaussCopula::rmvnorm_samples(int n, const Eigen::VectorXd& mean, const Eigen::MatrixXd& sigma) {
     if (sigma.rows() != 2 || sigma.cols() != 2) {
         assert("Sigma must be a 2x2 matrix");
@@ -281,6 +309,43 @@ Eigen::MatrixXd copula::GaussCopula::rmvnorm_samples(int n, const Eigen::VectorX
     randomSamples.rowwise() += mean.transpose();
 
     return randomSamples;
+};
+
+std::pair<std::vector<double>, std::vector<double>> copula::GaussCopula::rGaussCopula(int N_sim, const Eigen::VectorXd& mean, const Eigen::MatrixXd& sigma, QuantileFunction f1, QuantileFunction f2) {
+    Eigen::MatrixXd rmvnorm = GaussCopula::rmvnorm_samples(N_sim, mean, sigma);
+    std::vector<double> result1, result2;
+    for (int i = 0; i < rmvnorm.rows(); ++i) {
+        if (GaussCopula::debug) {
+            std::cout << rmvnorm(i, 0) << std::endl;
+            std::cout << StatsFunctions::pnorm(rmvnorm(i, 0)) << std::endl;
+            std::cout << f1(StatsFunctions::pnorm(rmvnorm(i, 0)));
+        }
+
+        result1.push_back(f1(StatsFunctions::pnorm(rmvnorm(i, 0))));
+        result2.push_back(f2(StatsFunctions::pnorm(rmvnorm(i, 1))));
+    }
+    return std::make_pair(result1, result2);
+}
+
+void copula::GaussCopula::PlotCopula(std::pair<std::vector<double>, std::vector<double>>& copula_data, double cor) {
+    #ifdef _M_X64
+    try {
+        const std::vector<double>& x = copula_data.first;
+        const std::vector<double>& y = copula_data.second;
+
+        py::module plt = py::module::import("matplotlib.pyplot");
+        std::string cor_str = std::to_string(cor);
+
+        plt.attr("scatter")(x, y, "alpha"_a = 0.5, "color"_a = "orange");
+        plt.attr("title")("Scatter Plot of Gaussian Copula Samples - Correlation: " + cor_str);
+        plt.attr("xlabel")("X");
+        plt.attr("ylabel")("Y");
+        plt.attr("show")();
+    }
+    catch (const std::exception& ex) {
+        std::cerr << "C++ Exception: " << ex.what() << std::endl;
+    }
+    #endif
 }
 
 //========================================

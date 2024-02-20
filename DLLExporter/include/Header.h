@@ -51,7 +51,9 @@ namespace copula {
             inline double variance(const std::vector<double>& data) const;
             inline double skewness(const std::vector<double>& data) const;
             inline double kurtosis(const std::vector<double>& data) const;
+
             static std::pair<double, bool> rlogseries_ln1p(double a, double cutoff = log(2));
+            inline static float erfinv(float x);
 
             template <typename T1, typename T2>
             static inline typename T1::value_type Quantile(const T1& x, T2 q);
@@ -62,15 +64,24 @@ namespace copula {
             std::vector<double> generate_cauchy(int N, double location, double scale);
             std::vector<double> generate_beta(int N, double alpha, double beta);
 
+            inline static double pnorm(double value);
+
+            inline static double qnorm(double p, double mean = 0, double sigma = 1);
+            inline static double qunif(double p, double a = 0.0, double b = 1.0);
+
             static void plotDistribution(std::vector<double>& data);
     };
 
     class __declspec(dllimportexport) GaussCopula {
         public:
             GaussCopula(bool Debug = false) : debug(Debug) {};
-
-            void printMatrix(const Eigen::MatrixXd& matrix, const std::string& name);
+            using QuantileFunction = std::function<double(double)>;
+        
             Eigen::MatrixXd rmvnorm_samples(int n, const Eigen::VectorXd& mean, const Eigen::MatrixXd& sigma);
+            std::pair<std::vector<double>, std::vector<double>> rGaussCopula(int N_sim, const Eigen::VectorXd& mean, const Eigen::MatrixXd& sigma, QuantileFunction f1, QuantileFunction f2);
+            
+            void PlotCopula(std::pair<std::vector<double>, std::vector<double>>& copula_data, double cor);
+            void printMatrix(const Eigen::MatrixXd& matrix, const std::string& name);
         private:
             bool debug;
     };
