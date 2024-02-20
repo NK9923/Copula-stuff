@@ -3,7 +3,6 @@
 #include <vector>
 #include <fstream>
 
-
 #ifdef _M_X64
 #include <pybind11/embed.h>  // py::scoped_interpreter
 #include <pybind11/stl.h>    // bindings from C++ STL containers to Python types

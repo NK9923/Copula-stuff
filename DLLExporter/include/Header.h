@@ -14,6 +14,7 @@
 #include<map>
 #include<cassert>
 #include<algorithm>
+#include<Eigen/Dense>
 
 namespace copula {
     struct __declspec(dllimportexport) GPDResult {
@@ -64,29 +65,38 @@ namespace copula {
             static void plotDistribution(std::vector<double>& data);
     };
 
-    class __declspec(dllimportexport) FrankCopula {
-    public:
-        FrankCopula(double alpha = 2.0, int dim = 2) : alpha(alpha), dim(dim) {
-            if (dim > 2) {
-                std::cerr << "Only implemented for dimension 2. Higher dimensions require dynamic differentiation" << std::endl;
-                assert(false);
-            }
-            this->PrintInfo();
-        }
-        inline void PrintInfo();
-        inline double cdfExpr(const std::vector<double>& u, int dim);
-        inline double pdfExpr(const std::vector<double>& u);
+    class __declspec(dllimportexport) GaussCopula {
+        public:
+            GaussCopula(bool Debug = false) : debug(Debug) {};
 
-        std::pair<std::vector<double>, std::vector<double>> rfrankCopula(int n);
-        void PlotCopula(std::pair<std::vector<double>, std::vector<double>>& copula_data);
-
-    private:
-        double alpha;
-        int dim;
-
-        inline std::pair<std::vector<double>, std::vector<double>> rfrankBivCopula(int n);
+            void printMatrix(const Eigen::MatrixXd& matrix, const std::string& name);
+            Eigen::MatrixXd rmvnorm_samples(int n, const Eigen::VectorXd& mean, const Eigen::MatrixXd& sigma);
+        private:
+            bool debug;
     };
 
+    class __declspec(dllimportexport) FrankCopula {
+        public:
+            FrankCopula(double alpha = 2.0, int dim = 2) : alpha(alpha), dim(dim) {
+                if (dim > 2) {
+                    std::cerr << "Only implemented for dimension 2. Higher dimensions require dynamic differentiation" << std::endl;
+                    assert(false);
+                }
+                this->PrintInfo();
+            }
+            inline void PrintInfo();
+            inline double cdfExpr(const std::vector<double>& u, int dim);
+            inline double pdfExpr(const std::vector<double>& u);
+
+            std::pair<std::vector<double>, std::vector<double>> rfrankCopula(int n);
+            void PlotCopula(std::pair<std::vector<double>, std::vector<double>>& copula_data);
+
+        private:
+            double alpha;
+            int dim;
+
+            inline std::pair<std::vector<double>, std::vector<double>> rfrankBivCopula(int n);
+    };
 
 	__declspec(dllimportexport) GPDResult fit_GPD_PWM(const std::vector<double>& data);
 	__declspec(dllimportexport) GPDResult fit_GPD_MOM(const std::vector<double>& data);

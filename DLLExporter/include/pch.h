@@ -19,5 +19,6 @@
 #include <math.h>
 #include <random>
 #include<filesystem>
+#include <Eigen/Dense>
 
 #endif //PCH_H

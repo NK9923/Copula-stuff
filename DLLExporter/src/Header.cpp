@@ -237,6 +237,54 @@ std::pair<double, bool> copula::StatsFunctions::rlogseries_ln1p(double a, double
 
 //========================================
 
+void copula::GaussCopula::printMatrix(const Eigen::MatrixXd& matrix, const std::string& name) {
+    if (debug) {
+        std::cout << name << ":\n" << matrix << "\n\n";
+    }
+}
+
+// Function to generate random multivariate normally distributed samples
+Eigen::MatrixXd copula::GaussCopula::rmvnorm_samples(int n, const Eigen::VectorXd& mean, const Eigen::MatrixXd& sigma) {
+    if (sigma.rows() != 2 || sigma.cols() != 2) {
+        assert("Sigma must be a 2x2 matrix");
+    }
+
+    Eigen::EigenSolver<Eigen::MatrixXd> solver(sigma);
+    Eigen::VectorXd eigenvalues = solver.eigenvalues().real();
+    Eigen::MatrixXd ev = solver.eigenvectors().real();
+    printMatrix(eigenvalues, "Eigenvalues");
+    printMatrix(ev, "Eigenvectors");
+
+    for (int i = 0; i < eigenvalues.size(); ++i) {
+        if (eigenvalues(i) < 0) {
+            eigenvalues(i) = 0;
+        }
+    }
+    eigenvalues = eigenvalues.cwiseSqrt();
+    printMatrix(eigenvalues.array(), "eigenvalues.array()");
+
+    Eigen::MatrixXd adjustedEv = ev.transpose().array().colwise() * eigenvalues.array();
+    printMatrix(adjustedEv, "adjustedEv");
+
+    ev = (ev * adjustedEv).transpose();
+    printMatrix(ev, "Adjusted Cholesky Decomposition");
+
+    std::default_random_engine generator;
+    std::normal_distribution<double> distribution(0.0, 1.0);
+    Eigen::MatrixXd randomSamples(n, sigma.cols());
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < sigma.cols(); ++j) {
+            randomSamples(i, j) = distribution(generator);
+        }
+    }
+    randomSamples = randomSamples * ev.transpose();
+    randomSamples.rowwise() += mean.transpose();
+
+    return randomSamples;
+}
+
+//========================================
+
 // ECDF
 copula::ECDF::ECDF(const std::vector<double>& data) {
     sorted_data = data;
