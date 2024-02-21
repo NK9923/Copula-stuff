@@ -4,9 +4,9 @@ In this repository I deepened my knowledge about probability theory and the foun
 
 In detail I implemented the Gaussian copula, which is defined as:
 
-$C_R (u_1,u_2) = \Phi_R(\Phi^{-1}(u_1),\Phi^{-1}(u_2))$
+$C_\Sigma (u_1,u_2) = \Phi_\Sigma(\Phi^{-1}(u_1),\Phi^{-1}(u_2))$
 
-where \Phi_R is the bivariate normal cdf with covariance matrix R (equal to the correlation matrix), and \Phi^{-1} is the quantile normal function. For the ordinary Gaussian copula I sampled from a multivariate normal distribution applied the distribution function of the standard normal and took the quantile
+where $\Phi_R$ is the bivariate normal cdf with covariance matrix $\Sigma$ (equal to the correlation matrix), and $\Phi^{-1}$ is the quantile normal function. For the ordinary Gaussian copula I sampled from a multivariate normal distribution applied the distribution function of the standard normal and took the quantile
 
 as well as the Frank copula
 
