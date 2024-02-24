@@ -48,6 +48,7 @@
     <ProjectGuid>{fe8daa46-d24e-4aec-a6e1-d0eac75d1f61}</ProjectGuid>
     <RootNamespace>DLLExporter</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>CopulaDLL</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
