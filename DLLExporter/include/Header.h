@@ -1,42 +1,39 @@
 #pragma once
 
-#define EXPORT
-
 #ifdef EXPORT
 #define dllimportexport dllexport
 #else
 #define dllimportexport dllimport
 #endif
 
-#include<vector>
-#include<optional>
-#include<string>
-#include<map>
-#include<cassert>
-#include<algorithm>
-#include<Eigen/Dense>
+#include <iostream>
+#include <vector>
+#include <optional>
+#include <string>
+#include <map>
+#include <cassert>
+#include <algorithm>
+#include <Eigen/Dense>
 
 namespace copula {
-    struct __declspec(dllimportexport) GPDResult {
-        std::vector<double> excesses;
-        double shape;
-        double scale;
-        double threshold;
-    };
 
-    
-    class __declspec(dllimportexport) differentiation {
+    __declspec(dllimportexport) void getwd();
+
+    class __declspec(dllimportexport) NumericalDifferentiation {
         public:
             static std::vector<double> gradient(double (*f)(const std::vector<double>&), const std::vector<double>& x0, double heps = 1e-9);
+            
+            template<typename VectorType>
+            VectorType gradient(const std::function<double(const VectorType&)>& f, const VectorType& x0, double heps);
     };
     
-
 	class __declspec(dllimportexport) ECDF {
         public:
             ECDF(const std::vector<double>& data);
-            double operator()(double x) const;
-            double head_ecdf(int min_obs) const;
+            const std::vector<double>& getSortedData() const;
+            void plotECDF();
 
+            double operator()(double x) const;
         private:
             std::vector<double> sorted_data;
             std::vector<double> ecdf_values;
@@ -100,6 +97,7 @@ namespace copula {
             inline double pdfExpr(const std::vector<double>& u);
 
             std::pair<std::vector<double>, std::vector<double>> rfrankCopula(int n);
+            std::pair<std::vector<double>, std::vector<double>> Frank_paretoMarginals(int n, double Theta, double Alpha1, double Alpha2, double Gamma1, double Gamma2);
             void PlotCopula(std::pair<std::vector<double>, std::vector<double>>& copula_data);
 
         private:
@@ -109,10 +107,20 @@ namespace copula {
             inline std::pair<std::vector<double>, std::vector<double>> rfrankBivCopula(int n);
     };
 
-	__declspec(dllimportexport) GPDResult fit_GPD_PWM(const std::vector<double>& data);
-	__declspec(dllimportexport) GPDResult fit_GPD_MOM(const std::vector<double>& data);
-    __declspec(dllimportexport) GPDResult gpd_fit(const std::vector<double>& data, std::optional<double> lower, std::optional<double> upper, int min_obs, std::string method, bool lower_tail, bool double_tail);
-    __declspec(dllimportexport) void getwd();
+    class __declspec(dllimportexport) EVTCopula {
+        private:
+            struct __declspec(dllimportexport) GPDResult {
+                std::vector<double> excesses;
+                double shape;
+                double scale;
+                double threshold;
+            };
+        public:
+            GPDResult fit_GPD_PWM(const std::vector<double>& data);
+            std::vector<EVTCopula::GPDResult> f_FitGPD(const std::vector<std::vector<double>>& data, std::optional<double> lower = std::nullopt,
+                std::optional<double> upper = std::nullopt, int min_obs = 150, std::string method = "MLE", bool lower_tail = false,
+                bool double_tail = false);
+        };
 }
 
 template <typename T1, typename T2>

@@ -22,7 +22,7 @@ int main()
     copula::getwd();
 
     // Test if gradient computation works
-    std::vector<double> result = copula::differentiation::gradient(schaffer_N6, { 1, 2 });
+    std::vector<double> result = copula::NumericalDifferentiation::gradient(schaffer_N6, { 1, 2 });
 
     std::cout << "Gradient: ";
     for (double val : result) {
@@ -71,9 +71,6 @@ int main()
     #endif
 
     // Test Frank Copula
-    std::pair<double, bool> fr = copula::StatsFunctions::rlogseries_ln1p(2);
-    std::cout << "val: " << fr.first << std::endl;
-
     copula::FrankCopula Frank(25);
 
     double value = Frank.cdfExpr({ 0.1, 0.2 }, 2);
@@ -82,11 +79,12 @@ int main()
     double val1 = Frank.pdfExpr({ 0.1, 0.2 });
     std::cout << val1 << std::endl;
 
-    std::pair<std::vector<double>, std::vector<double>> copulaPair;
-    copulaPair = Frank.rfrankCopula(5000); 
-
+    auto copulaPair = Frank.rfrankCopula(5000); 
+    auto copulaPairParteo = Frank.Frank_paretoMarginals(500, 20, 100, 100, 50, 5);
+    
     #ifdef _M_X64
         Frank.PlotCopula(copulaPair);
+        Frank.PlotCopula(copulaPairParteo);
     #endif
 
     Eigen::VectorXd mean(2);

@@ -98,6 +98,12 @@ f_TailDep <- function(x) {
   return(res)
 }
 
+library(data.table)
+
+set.seed(123)
+ <- data.table(X = rnorm(1000), Y = rnorm(1000))
+f_TailDep(x)
+
 # ### Running ----
 # df_Combi$TailDep <- lapply(l_Synths, function(synth) {
 #   f_TailDep(synth[, c("RoRLog_A", "RoRLog_B")])
