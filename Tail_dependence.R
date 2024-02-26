@@ -558,6 +558,51 @@ quantile_comparison(list(spxt_q, i14_q))
 
 
 
+# student t-distribution
 
+library(gamma)
+
+# Definition der pdf der t-Verteilung
+dt_t_distribution <- function(x, df) {
+  gamma_term <- gamma((df + 1) / 2) / (sqrt(pi * df) * gamma(df / 2))
+  expression_term <- (1 + (x^2 / df))^(-(df + 1) / 2)
+  return(gamma_term * expression_term)
+}
+
+# Numerische Integration mit der Trapezregel
+trapezoidal_rule <- function(f, a, b, n, df) {
+  h <- (b - a) / n
+  sum <- 0
+  for (i in 1:n) {
+    x0 <- a + (i - 1) * h
+    x1 <- a + i * h
+    sum <- sum + (h / 2) * (f(x0, df) + f(x1, df))
+  }
+  return(sum)
+}
+
+# Berechnung des Quantils der t-Verteilung
+quantile_t <- function(p, df, tol = 1e-6, max_iter = 1000) {
+  x <- 0
+  a <- -1000  # Untere Grenze für die Integration
+  for (i in 1:max_iter) {
+    pdf <- dt_t_distribution(x, df)
+    cdf <- trapezoidal_rule(dt_t_distribution, a, x, 1000, df) / 
+      trapezoidal_rule(dt_t_distribution, a, Inf, 1000, df)
+    if (abs(cdf - p) < tol) {
+      break
+    }
+    x <- x - (cdf - p) / pdf
+  }
+  return(x)
+}
+
+
+# Test der Funktion
+p <- 0.95
+df <- 10
+quantile_t(p, df)
+                    
+                     
 
 
