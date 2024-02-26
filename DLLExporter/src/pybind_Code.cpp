@@ -67,19 +67,20 @@ namespace copula {
     }
 
     void ECDF::plotECDF() {
-        #ifdef _M_X64
-                py::module plt = py::module::import("matplotlib.pyplot");
 
-                try {
-                    plt.attr("plot")(sorted_data, ecdf_values);
-                    plt.attr("title")("Empirical Cumulative Distribution Function (ECDF)");
-                    plt.attr("xlabel")("X");
-                    plt.attr("ylabel")("ECDF");
-                    plt.attr("show")();
-                }
-                catch (const std::exception& ex) {
-                    std::cerr << "C++ Exception: " << ex.what() << std::endl;
-                }
+        #ifdef _M_X64
+            py::module plt = py::module::import("matplotlib.pyplot");
+
+            try {
+                plt.attr("plot")(sorted_data, ecdf_values);
+                plt.attr("title")("Empirical Cumulative Distribution Function (ECDF)");
+                plt.attr("xlabel")("X");
+                plt.attr("ylabel")("ECDF");
+                plt.attr("show")();
+            }
+            catch (const std::exception& ex) {
+                std::cerr << "C++ Exception: " << ex.what() << std::endl;
+            }
         #endif
     }
 }

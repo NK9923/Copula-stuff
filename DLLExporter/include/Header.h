@@ -61,10 +61,16 @@ namespace copula {
             std::vector<double> generate_cauchy(int N, double location, double scale);
             std::vector<double> generate_beta(int N, double alpha, double beta);
 
+            // Normal distribution
             inline static double pnorm(double value);
-
             inline static double qnorm(double p, double mean = 0, double sigma = 1);
             inline static double qunif(double p, double a = 0.0, double b = 1.0);
+
+            //Student's t distribution
+            inline static double trapezoidal(double a, double b, int n, std::function<double(double)> f);
+            inline static double pdf_t(double x, int df);
+            inline static double cdf_t(double x, int df);
+            inline static double q_t(double p, int df, double tol = 1e-6, int max_iter = 1000);
 
             static void plotDistribution(std::vector<double>& data);
     };
@@ -116,11 +122,15 @@ namespace copula {
                 double threshold;
             };
         public:
-            GPDResult fit_GPD_PWM(const std::vector<double>& data);
             std::vector<EVTCopula::GPDResult> f_FitGPD(const std::vector<std::vector<double>>& data, std::optional<double> lower = std::nullopt,
                 std::optional<double> upper = std::nullopt, int min_obs = 150, std::string method = "MLE", bool lower_tail = false,
                 bool double_tail = false);
-        };
+
+            std::vector<double> f_FastpSPGPD(const std::vector<double>& data, EVTCopula::GPDResult& fit);
+
+            std::vector<std::vector<double>> f_CopulasEmpirical(const std::vector<std::vector<double>>& data, std::vector<EVTCopula::GPDResult>& fit);
+            double f_TailDep(const std::vector<std::vector<double >>& data, double threshold);
+    };
 }
 
 template <typename T1, typename T2>

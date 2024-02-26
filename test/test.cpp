@@ -21,6 +21,12 @@ int main()
 {
     copula::getwd();
 
+    std::cout << copula::StatsFunctions::q_t(0.95, 5) << std::endl;
+
+    std::cout << copula::StatsFunctions::cdf_t(2, 5) << std::endl;
+
+    std::cout << copula::StatsFunctions::pdf_t(2, 5) << std::endl;
+
     // Test if gradient computation works
     std::vector<double> result = copula::NumericalDifferentiation::gradient(schaffer_N6, { 1, 2 });
 

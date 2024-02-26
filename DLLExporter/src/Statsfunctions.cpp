@@ -234,6 +234,45 @@ namespace copula {
         return a + (b - a) * p;
     }
 
+    double StatsFunctions::trapezoidal(double a, double b, int n, std::function<double(double)> f) {
+        double dx = (b - a) / n;
+        double integral = f(a) + f(b);
+        for (int i = 1; i <= n - 1; i++) {
+            integral += 2.0 * f(a + i * dx);
+        }
+        integral *= dx / 2.0;
+        return integral;
+    }
+
+    double StatsFunctions::pdf_t(double x, int df) {
+        double pi = 4.0 * atan(1.0);
+        double gamma_term = tgamma(0.5 * (df + 1.0)) / tgamma(0.5 * df) / sqrt(df * pi);
+        double expression_term = pow(1.0 + (x * x / df), -0.5 * (df + 1.0));
+        return gamma_term * expression_term;
+    }
+
+    double StatsFunctions::cdf_t(double x, int df) {
+        double pi = 4.0 * atan(1.0);
+        std::function<double(double)> pdf_function = [df](double val) { return pdf_t(val, df); };
+        double integral = trapezoidal(0.0, x, 1000, pdf_function);
+        return 0.5 + (x > 0 ? integral : -integral);
+    }
+
+    double StatsFunctions::q_t(double p, int df, double tol, int max_iter) {
+        double x = 0.0;
+        for (int i = 0; i < max_iter; i++) {
+            double cdf = cdf_t(x, df);
+            double pdf = pdf_t(x, df);
+            if (std::abs(cdf - p) < tol) {
+                break;
+            }
+            else {
+                x -= (cdf - p) / pdf;
+            }
+        }
+        return x;
+    }
+
     // Empirical CDF function 
     ECDF::ECDF(const std::vector<double>& data) {
         sorted_data = data;
