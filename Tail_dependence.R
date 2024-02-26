@@ -1,3 +1,214 @@
+gpd.fit<-function(data, lower=NULL, upper=NULL, min.obs=150, 
+                  method=c("MLE", "MOM", "PWM"), lower.tail=FALSE, double.tail){
+  #Fit for upper and lower tail
+  if(double.tail==TRUE){
+    if(is.null(lower)){
+      lower<-ecdf(data)(head(sort(data), min.obs)[min.obs])
+    }
+    u.lower<-quantile(data, lower)
+    excesses.lower<-data[data<=u.lower]*(-1)-u.lower*(-1)
+    if(is.null(upper)){
+      upper<-ecdf(data)(tail(sort(data), min.obs)[1])
+    }
+    u.upper<-quantile(data, upper)
+    excesses.upper<-data[data>=u.upper]-u.upper
+    #Safety check
+    if(all(excesses.lower>=0) & all(excesses.upper>=0)==FALSE){
+      stop("Support of the GPD is >=0. Check upper and lower thresholds.")
+    }
+    if(method=="MLE"){
+      gpd.fit.lower<-fit_GPD_MLE(x = excesses.lower, estimate.cov = F)
+      gpd.fit.upper<-fit_GPD_MLE(x = excesses.upper, estimate.cov = F)
+    }
+    else if(method=="MOM"){
+      gpd.fit.lower<-fit_GPD_MOM(x = excesses.lower)
+      gpd.fit.upper<-fit_GPD_MOM(x = excesses.upper)
+    }
+    else if(method=="PWM"){
+      gpd.fit.lower<-fit_GPD_PWM(x = excesses.lower)
+      gpd.fit.upper<-fit_GPD_PWM(x = excesses.upper)
+    }
+    list("Excesses.lower"=sort(excesses.lower), "Shape.lower"=gpd.fit.lower$par[["shape"]], 
+         "Scale.lower"=gpd.fit.lower$par[["scale"]], "Threshold.lower"=u.lower,
+         "Excesses.upper"=sort(excesses.upper), "Shape.upper"=gpd.fit.upper$par[["shape"]], 
+         "Scale.upper"=gpd.fit.upper$par[["scale"]], "Threshold.upper"=u.upper)
+  }
+  #Fit for lower tail alone
+  else{
+    if(lower.tail==TRUE){
+      #For no predefined threshold: select quantile such that n=min.obs
+      if(is.null(lower)){
+        lower<-ecdf(data)(head(sort(data), min.obs)[min.obs])
+      }
+      u<-quantile(data, lower)
+      excesses<-data[data<=u]*(-1)-u*(-1)
+    }
+    #Fit for upper tail alone
+    else{
+      if(is.null(upper)){
+        upper<-ecdf(data)(tail(sort(data), min.obs)[1])
+      }
+      u<-quantile(data, upper)
+      excesses<-data[data>=u]-u 
+    }
+    #Safety check
+    if(all(excesses>=0)==FALSE){
+      stop("Support of the GPD is >=0")
+    }
+    if(method=="MLE"){
+      gpd.fit<-fit_GPD_MLE(x = excesses, estimate.cov = F)
+    }
+    else if(method=="MOM"){
+      gpd.fit<-fit_GPD_MOM(x = excesses)
+    }
+    else if(method=="PWM"){
+      gpd.fit<-fit_GPD_PWM(x = excesses)
+    }
+    if(lower.tail==T){
+      excesses<-excesses*(-1)
+    }
+    list("Excesses"=sort(excesses), "Shape"=gpd.fit$par[["shape"]], 
+         "Scale"=gpd.fit$par[["scale"]], "Threshold"=u) 
+  }
+}
+
+#Cumulative distribution
+pSPGPD<-function(x, data, fit){
+  #Automatically detect if the input fit is double or single tailed
+  double.tail<-ifelse(length(fit)>4, TRUE, FALSE)
+  emp.cdf<-sort(data)
+  #CDF with right and left tail
+  if(double.tail==TRUE){
+    shape.lower<-fit$Shape.lower
+    shape.upper<-fit$Shape.upper
+    scale.lower<-fit$Scale.lower
+    scale.upper<-fit$Scale.upper
+    u.lower<-fit$Threshold.lower
+    u.upper<-fit$Threshold.upper
+    n_u.lower<-length(fit$Excesses.lower)
+    n_u.upper<-length(fit$Excesses.upper)
+    n<-length(emp.cdf)
+    if(x<u.lower){
+      prob<-(n_u.lower/n)*(1+shape.lower*(abs(x)-abs(u.lower))/scale.lower)^(-1/shape.lower)
+    }
+    else if(u.lower<=x & x<=u.upper){
+      most.similar<-which.min(abs(emp.cdf-x))
+      #Beware of rounding above since discrete distribution
+      if(x<emp.cdf[most.similar]){
+        i<-most.similar-1
+      }
+      else{
+        i<-most.similar
+      }
+      prob<-(i-0.5)/n
+    }
+    else if(x>u.upper){
+      prob<-1-(n_u.upper/n)*(1+shape.upper*(x-u.upper)/scale.upper)^(-1/shape.upper)
+    }
+  }
+  else{
+    #Sort data vector to have empirical CDF
+    shape<-fit$Shape
+    scale<-fit$Scale
+    u<-fit$Threshold
+    n_u<-length(fit$Excesses)
+    n<-length(emp.cdf)
+    if(x<=u){
+      most.similar<-which.min(abs(emp.cdf-x))
+      #Beware of rounding above since discrete distribution
+      if(x<emp.cdf[most.similar]){
+        i<-most.similar-1
+      }
+      else{
+        i<-most.similar
+      }
+      prob<-(i-0.5)/n
+    }
+    else if(x>u){
+      prob<-1-(n_u/n)*(1+shape*(x-u)/scale)^(-1/shape)
+    }
+  }
+  unname(prob)
+}
+
+#Quantile function
+qSPGPD<-function(prob, data, fit){
+  #Automatically detect if the input fit is double or single tailed
+  double.tail<-ifelse(length(fit)>4, TRUE, FALSE)
+  emp.cdf<-sort(data)
+  if(double.tail==TRUE){
+    shape.lower<-fit$Shape.lower
+    shape.upper<-fit$Shape.upper
+    scale.lower<-fit$Scale.lower
+    scale.upper<-fit$Scale.upper
+    u.lower<-fit$Threshold.lower
+    u.upper<-fit$Threshold.upper
+    #Find tho which quantiles do the thresholds belong
+    prob_u.lower<-ecdf(emp.cdf)(u.lower)
+    prob_u.upper<-ecdf(emp.cdf)(u.upper)
+    n_u.lower<-length(fit$Excesses.lower)
+    n_u.upper<-length(fit$Excesses.upper)
+    n<-length(emp.cdf)
+    if(prob<prob_u.lower){
+      x<-((((prob*(n/n_u.lower))^(-shape.lower)-1)*scale.lower)/shape.lower+abs(u.lower))*(-1)
+    }
+    else if(prob_u.lower<=prob & prob<=prob_u.upper){
+      #Security check: guarantee that it will not output a 0
+      x<-ifelse(floor(prob*n+0.5)==0, emp.cdf[1], emp.cdf[floor(prob*n+0.5)])
+    }
+    else if(prob>prob_u.upper){
+      x<-((((1-prob)*(n/n_u.upper))^(-shape.upper)-1)*scale.upper)/shape.upper+u.upper
+    }
+  }
+  #Only right tail with GPD
+  else{
+    n<-length(emp.cdf)
+    n_u<-length(fit$Excesses)
+    shape<-fit$Shape
+    scale<-fit$Scale
+    u<-fit$Threshold
+    #Find to which quantile does the threshold belong
+    prob_u<-ecdf(emp.cdf)(u)
+    if(prob<=prob_u){
+      x<-ifelse(floor(prob*n+0.5)==0, emp.cdf[1], emp.cdf[floor(prob*n+0.5)])
+    }
+    else if(prob_u<prob){
+      x<-((((1-prob)*(n/n_u))^(-shape)-1)*scale)/shape+u
+    }
+  }
+  unname(x)
+}
+
+#Random number generator
+rSPGPD<-function(n, data, fit, quasirandom=TRUE){
+  if(quasirandom==TRUE){
+    q<-ghalton(n = n, d = 1, method = "halton")
+  }
+  else{
+    q<-runif(n = n)
+  }
+  #Unlist for safety
+  unlist(sapply(q, function(x) qSPGPD(prob = x, data = data, fit = fit)))
+}
+
+
+
+
+
+rpar <- function(N,g,k){
+  
+  if (k < 0 | g <0){
+    stop("both k and g >0")
+  }
+  
+  k*(1-runif(N))^(-1/g)
+}
+
+
+rand_pareto <- rpar(1e5,5, 16)
+hist(rand_pareto, 100, freq = FALSE)
+
+
 #### Tail dependency
 # Using Pedro's method.
 
