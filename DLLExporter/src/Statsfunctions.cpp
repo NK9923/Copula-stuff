@@ -273,6 +273,26 @@ namespace copula {
         return x;
     }
 
+    std::vector<double> StatsFunctions::rt(int n, int df) {
+        std::random_device rd{};
+        std::mt19937 gen{ rd() };
+
+        std::normal_distribution<double> standard_normal_distribution(0.0, 1.0);
+        std::chi_squared_distribution<double> chi_squared_distribution(df);
+
+        std::vector<double> t_random_values;
+        t_random_values.reserve(n);
+
+        for (int i = 0; i < n; ++i) {
+            double standard_normal = standard_normal_distribution(gen);
+            double chi_square = chi_squared_distribution(gen);
+            double t_random = standard_normal / sqrt(chi_square / df);
+            t_random_values.push_back(t_random);
+        }
+
+        return t_random_values;
+    }
+
     // Empirical CDF function 
     ECDF::ECDF(const std::vector<double>& data) {
         sorted_data = data;

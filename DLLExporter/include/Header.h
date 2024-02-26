@@ -41,6 +41,7 @@ namespace copula {
 
     class __declspec(dllimportexport) StatsFunctions {
         public:
+            // Core Stats Functions
             std::map<std::string, double> fitMoments(const std::vector<double>& data);
             inline double calculateShape(double locHat, double sig2Hat) const;
             inline double calculateScale(double locHat, double shapeHat) const;
@@ -55,6 +56,7 @@ namespace copula {
             template <typename T1, typename T2>
             static inline typename T1::value_type Quantile(const T1& x, T2 q);
 
+            // Random Number Generation
             std::vector<double> generate_uniform(int N_sim);
             std::vector<double> generate_gaussian(int N_sim, double mean, double stddev);
             std::vector<double> generate_pareto(int N, double g, double k);
@@ -71,7 +73,9 @@ namespace copula {
             inline static double pdf_t(double x, int df);
             inline static double cdf_t(double x, int df);
             inline static double q_t(double p, int df, double tol = 1e-6, int max_iter = 1000);
+            std::vector<double> rt(int n, int df);
 
+            // Plot Distribution
             static void plotDistribution(std::vector<double>& data);
     };
 
