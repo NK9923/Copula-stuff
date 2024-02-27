@@ -82,3 +82,136 @@ rclaytonBivCopula <- function(n, alpha) {
 
 samples <- rclaytonBivCopula(1000, 5)
 plot(samples[,1], samples[,2])
+
+
+
+# ---- Inverse
+
+inverse_pareto <- function(p, b, k) {
+  if (any(p <= 0) || any(p >= 1) || k <= 0) {
+    stop("Invalid parameters for inverse Pareto function.")
+  }
+  
+  return(b / (1 - p)^(1/k))
+}
+
+# Example usage
+p_values <- seq(0.01, 0.99, by = 0.01)
+b_value <- 1.0
+k_value <- 2.0
+
+quantiles <- inverse_pareto(0.05, b_value, k_value)
+
+qPareto(0.05, b_value, k_value)
+
+
+# Function to generate random numbers from Pareto distribution
+rpareto_custom <- function(n, b, k) {
+  if (any(c(n, b, k) <= 0)) {
+    stop("Invalid parameters for Pareto distribution.")
+  }
+  
+  u <- runif(n)  # Generate n uniform random numbers
+  x <- b / (u^(1/k))  # Inverse transform sampling
+  
+  return(x)
+}
+
+# Example usage
+n <- 1000
+b_value <- 1.0
+k_value <- 2.0
+
+pareto_samples <- rpareto_custom(n, b_value, k_value)
+
+# Plot histogram of generated samples
+hist(pareto_samples, breaks = 300, col = "lightblue", main = "Pareto Distribution")
+
+
+
+
+# Function to calculate the Beta probability density function (PDF)
+pdf <- function(x, shape1, shape2) {
+  if (any(x < 0) || any(x > 1) || shape1 <= 0 || shape2 <= 0) {
+    stop("Invalid parameters for Beta distribution.")
+  }
+  
+  beta.1 <- function(alpha, beta) {
+    (gamma(alpha) * gamma(beta))/gamma(alpha + beta)
+  }
+  
+  # Beta PDF
+  pdf <- x^(shape1 - 1) * (1 - x)^(shape2 - 1) / beta.1(shape1, shape2)
+  
+  return(pdf)
+}
+
+# Function to calculate the Beta cumulative distribution function (CDF)
+cdf <- function(x, shape1, shape2) {
+  if (any(x < 0) || any(x > 1) || shape1 <= 0 || shape2 <= 0) {
+    stop("Invalid parameters for Beta distribution.")
+  }
+  
+  beta.1 <- function(alpha, beta) {
+    (gamma(alpha) * gamma(beta))/gamma(alpha + beta)
+  }
+  
+  # Beta CDF (using numerical integration)
+  cdf <- sapply(x, function(x_i) {
+    integrate(function(t) t^(shape1 - 1) * (1 - t)^(shape2 - 1), lower = 0, upper = x_i)$value
+  })
+  
+  beta <- beta.1(shape1, shape2)
+  
+  return(cdf/beta)
+}
+
+cdf(0.05, shape1_value, shape2_value)
+pbeta(0.05, shape1_value, shape2_value)
+
+
+# Function to calculate quantiles for the Beta distribution (numerical inversion)
+qbeta_custom <- function(p, shape1, shape2) {
+  if (any(p < 0) || any(p > 1) || shape1 <= 0 || shape2 <= 0) {
+    stop("Invalid parameters for Beta distribution.")
+  }
+  
+  # Numerical inversion to find quantiles
+  find_quantile <- function(prob, a, b) {
+    lower <- 0
+    upper <- 1
+    
+    while (upper - lower > 1e-10) {
+      mid <- (lower + upper) / 2
+      if (pbeta_custom(mid, a, b) < prob) {
+        lower <- mid
+      } else {
+        upper <- mid
+      }
+    }
+    
+    return(mid)
+  }
+  
+  # Calculate quantiles using numerical inversion
+  quantiles <- sapply(p, function(prob) find_quantile(prob, shape1, shape2))
+  
+  return(quantiles)
+}
+
+# Example usage
+p_values <- seq(0.01, 0.99, by = 0.01)
+shape1_value <- 2.0
+shape2_value <- 5.0
+
+# Calculate PDF, CDF, and quantiles
+beta_pdf <- dbeta_custom(p_values, shape1_value, shape2_value)
+beta_cdf <- pbeta_custom(p_values, shape1_value, shape2_value)
+beta_quantiles <- qbeta_custom(p_values, shape1_value, shape2_value)
+qbeta_custom(0.05, shape1_value, shape2_value)
+
+# Print the results
+print(data.frame(p = p_values, pdf = beta_pdf, cdf = beta_cdf, quantile = beta_quantiles))
+
+
+
