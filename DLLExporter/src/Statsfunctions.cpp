@@ -318,7 +318,7 @@ namespace copula {
         return t_random_values;
     }
 
-    // Gamme distribution
+    // Gamma distribution
 
     double StatsFunctions::gamma_pdf(double x, double shape, double scale) {
 		if (x < 0) {
@@ -450,7 +450,6 @@ namespace copula {
             }
             iter++;
         }
-
         return (lower + upper) / 2;
     }
 
