@@ -3,6 +3,8 @@
 
 namespace copula {
 
+    // StatsFunctions core
+
     std::map<std::string, double> StatsFunctions::fitMoments(const std::vector<double>& data) {
         std::map<std::string, double> result;
 
@@ -95,6 +97,8 @@ namespace copula {
         return kurtosis;
     }
 
+    // Random number generation functions
+
     std::vector<double> StatsFunctions::generate_uniform(int N_sim) {
         std::random_device rd;
         std::mt19937 gen(rd());
@@ -151,25 +155,17 @@ namespace copula {
     }
 
     std::vector<double> StatsFunctions::generate_beta(int N, double alpha, double beta) {
-        if (alpha <= 0.0 || beta <= 0.0) {
-            throw std::invalid_argument("Both alpha and beta should be greater than 0.");
-        }
+        std::mt19937 engine(std::random_device{}());
 
-        std::mt19937 gen(std::random_device{}());
-        std::uniform_real_distribution<double> dis(0.0, 1.0);
+        std::gamma_distribution<double> x_gamma(alpha);
+        std::gamma_distribution<double> y_gamma(beta);
 
         std::vector<double> randomValues;
 
         for (int i = 0; i < N; ++i) {
-            double u1 = dis(gen);
-            double u2 = dis(gen);
-
-            double betaValue = std::pow(u1, 1.0 / alpha);
-            double invBeta = std::pow(1.0 / u2, 1.0 / beta);
-
-            randomValues.push_back(betaValue / (betaValue + invBeta));
+            double x = x_gamma(engine);
+            randomValues.push_back(x / (x + y_gamma(engine)));
         }
-
         return randomValues;
     }
 
@@ -207,6 +203,8 @@ namespace copula {
         return std::make_pair((val1 != 0.0) ? val1 : val2, (val1 != 0.0) || (val2 != 0.0));
     }
 
+    // Normal distribution
+
     float StatsFunctions::erfinv(float x) {
         float tt1, tt2, lnx, sgn;
         sgn = (x < 0) ? -1.0f : 1.0f;
@@ -220,19 +218,44 @@ namespace copula {
         return(sgn * sqrtf(-tt1 + sqrtf(tt1 * tt1 - tt2)));
     }
 
-    double StatsFunctions::pnorm(double value) {
+    double StatsFunctions::norm_pdf(double value) {
         return 0.5 * erfc(-value * sqrt(0.5));
     }
 
-    double StatsFunctions::qnorm(double p, double mean, double sigma) {
-        return(mean + sigma * sqrt(2) * erfinv(2 * p - 1));
+    double StatsFunctions::norm_cdf(double value) {
+		return 0.5 * erfc(-value * sqrt(0.5));
+	}
+
+    double StatsFunctions::norm_q(double p, double mean, double sigma) {
+        return (mean + sigma * sqrt(2) * erfinv(2 * p - 1));
     }
 
-    double StatsFunctions::qunif(double p, double a, double b) {
+    // Uniform distribution
+
+    double StatsFunctions::unif_pdf(double x, double a, double b) {
+		if (x < a || x > b) {
+			return 0;
+		}
+		return 1 / (b - a);
+	}
+
+    double StatsFunctions::unif_cdf(double x, double a, double b) {
+		if (x < a) {
+			return 0;
+		}
+		if (x > b) {
+			return 1;
+		}
+		return (x - a) / (b - a);
+	}
+
+    double StatsFunctions::unif_q(double p, double a, double b) {
         if (p < 0) p = 0;
         if (p > 1) p = 1;
         return a + (b - a) * p;
     }
+
+    // Trapezoidal rule for numerical integration
 
     double StatsFunctions::trapezoidal(double a, double b, int n, std::function<double(double)> f) {
         double dx = (b - a) / n;
@@ -244,25 +267,27 @@ namespace copula {
         return integral;
     }
 
-    double StatsFunctions::pdf_t(double x, int df) {
+    // Student's t distribution
+
+    double StatsFunctions::t_pdf(double x, int df) {
         double pi = 4.0 * atan(1.0);
         double gamma_term = tgamma(0.5 * (df + 1.0)) / tgamma(0.5 * df) / sqrt(df * pi);
         double expression_term = pow(1.0 + (x * x / df), -0.5 * (df + 1.0));
         return gamma_term * expression_term;
     }
 
-    double StatsFunctions::cdf_t(double x, int df) {
+    double StatsFunctions::t_cdf(double x, int df) {
         double pi = 4.0 * atan(1.0);
-        std::function<double(double)> pdf_function = [df](double val) { return pdf_t(val, df); };
+        std::function<double(double)> pdf_function = [df](double val) { return t_pdf(val, df); };
         double integral = trapezoidal(0.0, x, 1000, pdf_function);
         return 0.5 + (x > 0 ? integral : -integral);
     }
 
-    double StatsFunctions::q_t(double p, int df, double tol, int max_iter) {
+    double StatsFunctions::t_q(double p, int df, double tol, int max_iter) {
         double x = 0.0;
         for (int i = 0; i < max_iter; i++) {
-            double cdf = cdf_t(x, df);
-            double pdf = pdf_t(x, df);
+            double cdf = t_cdf(x, df);
+            double pdf = t_pdf(x, df);
             if (std::abs(cdf - p) < tol) {
                 break;
             }
@@ -273,7 +298,7 @@ namespace copula {
         return x;
     }
 
-    std::vector<double> StatsFunctions::rt(int n, int df) {
+    std::vector<double> StatsFunctions::generate_t(int N, int df){
         std::random_device rd{};
         std::mt19937 gen{ rd() };
 
@@ -281,9 +306,9 @@ namespace copula {
         std::chi_squared_distribution<double> chi_squared_distribution(df);
 
         std::vector<double> t_random_values;
-        t_random_values.reserve(n);
+        t_random_values.reserve(N);
 
-        for (int i = 0; i < n; ++i) {
+        for (int i = 0; i < N; ++i) {
             double standard_normal = standard_normal_distribution(gen);
             double chi_square = chi_squared_distribution(gen);
             double t_random = standard_normal / sqrt(chi_square / df);
@@ -291,6 +316,142 @@ namespace copula {
         }
 
         return t_random_values;
+    }
+
+    // Gamme distribution
+
+    double StatsFunctions::gamma_pdf(double x, double shape, double scale) {
+		if (x < 0) {
+			return 0;
+		}
+		if (shape <= 0 || scale <= 0) {
+			return 0;
+		}
+		return pow(x, shape - 1) * exp(-x / scale) / (tgamma(shape) * pow(scale, shape));
+	}
+
+    double StatsFunctions::gamma_cdf(double x, double shape, double scale) {
+        if (x < 0 || shape <= 0 || scale <= 0) {
+            return 0;
+        }
+
+        auto integrand = [shape, scale](double t) {
+            return std::pow(t, shape - 1) * std::exp(-t / scale);
+        };
+
+        const int n = 1000;
+        double result = 0.0;
+        double dx = x / n;
+
+        for (int i = 0; i < n; ++i) {
+            double x_i = i * dx;
+            double x_i_1 = (i + 1) * dx;
+            result += 0.5 * (integrand(x_i) + integrand(x_i_1)) * dx;
+        }
+
+        return result / std::tgamma(shape);
+    }
+
+    // ToFix still an error
+    double StatsFunctions::gamma_q(double p, double shape, double scale, double tol, int max_iter) {
+        if (p < 0.0 || p > 1.0 || shape <= 0.0 || scale <= 0.0) {
+            throw std::invalid_argument("Invalid parameters for gamma distribution quantile function.");
+        }
+
+        double lower = 0.0;
+        double upper = shape * scale;
+
+        int iter = 0;
+        while (upper - lower > tol && iter < max_iter) {
+            double x = (lower + upper) / 2;
+            double cdf_val = gamma_cdf(x, shape, scale);
+
+            if (std::abs(cdf_val - p) < tol) {
+                return x;
+            }
+
+            if (cdf_val < p) {
+                lower = x;
+            }
+            else {
+                upper = x;
+            }
+            iter++;
+        }
+        return (lower + upper) / 2;
+    }
+
+    // Exponential distribution
+
+    double StatsFunctions::exp_pdf(double x, double lambda) {
+		if (x < 0 || lambda <= 0) {
+			return 0;
+		}
+		return lambda * exp(-lambda * x);
+	}
+
+    double StatsFunctions::exp_cdf(double x, double lambda) {
+        if (x < 0 || lambda <= 0) {
+            return 0;
+        }
+        return 1 - exp(-lambda * x);
+    }
+
+    double StatsFunctions::exp_q(double p, double lambda) {
+		return -log(1 - p) / lambda;
+	}
+
+    // t-distribution with location and scale
+
+    double beta(double x, double y) {
+        return tgamma(x) * tgamma(y) / tgamma(x + y);
+    }
+
+    double StatsFunctions::beta_pdf(double x, double shape1, double shape2) {
+        assert(x >= 0.0 && x <= 1.0);
+        assert(shape1 > 0.0 && shape2 > 0.0);
+        return pow(x, shape1 - 1) * pow(1 - x, shape2 - 1) / beta(shape1, shape2);
+    }
+
+    double StatsFunctions::beta_cdf(double x, double shape1, double shape2) {
+        assert(x >= 0.0 && x <= 1.0);
+        assert(shape1 > 0.0 && shape2 > 0.0);
+
+        double beta_term = beta(shape1, shape2);
+
+        std::function<double(double)> integrand_function = [shape1, shape2](double t) {
+            return pow(t, shape1 - 1) * pow(1 - t, shape2 - 1);
+            };
+
+        double integral = trapezoidal(0.0, x, 10000, integrand_function);
+        return integral / beta_term;
+    }
+
+    double StatsFunctions::beta_q(double p, double shape1, double shape2, double tol, int max_iter) {
+        assert(p >= 0.0 && p <= 1.0);
+        assert(shape1 > 0.0 && shape2 > 0.0);
+
+        double lower = 0.0;
+        double upper = 1.0;
+
+        int iter = 0;
+        while (upper - lower > tol && iter < max_iter) {
+            double x = (lower + upper) / 2;
+            double cdf_val = beta_cdf(x, shape1, shape2);
+
+            if (std::abs(cdf_val - p) < tol) {
+                return x;
+            }
+            if (cdf_val < p) {
+                lower = x;
+            }
+            else {
+                upper = x;
+            }
+            iter++;
+        }
+
+        return (lower + upper) / 2;
     }
 
     // Empirical CDF function 

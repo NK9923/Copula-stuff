@@ -56,12 +56,12 @@ namespace copula {
         for (int i = 0; i < rmvnorm.rows(); ++i) {
             if (GaussCopula::debug) {
                 std::cout << rmvnorm(i, 0) << std::endl;
-                std::cout << StatsFunctions::pnorm(rmvnorm(i, 0)) << std::endl;
-                std::cout << f1(StatsFunctions::pnorm(rmvnorm(i, 0)));
+                std::cout << StatsFunctions::norm_pdf(rmvnorm(i, 0)) << std::endl;
+                std::cout << f1(StatsFunctions::norm_pdf(rmvnorm(i, 0)));
             }
 
-            result1.push_back(f1(StatsFunctions::pnorm(rmvnorm(i, 0))));
-            result2.push_back(f2(StatsFunctions::pnorm(rmvnorm(i, 1))));
+            result1.push_back(f1(StatsFunctions::norm_pdf(rmvnorm(i, 0))));
+            result2.push_back(f2(StatsFunctions::norm_pdf(rmvnorm(i, 1))));
         }
         return std::make_pair(result1, result2);
     }

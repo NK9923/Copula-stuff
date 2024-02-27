@@ -110,49 +110,90 @@ f_TailDep(x)
 #   f_TailDep(synth[, c("RoRLog_A", "RoRLog_B")])
 # })
 
-library(gamma)
 
-# Definition der pdf der t-Verteilung
-dt_t_distribution <- function(x, df) {
-  gamma_term <- gamma((df + 1) / 2) / (sqrt(pi * df) * gamma(df / 2))
-   <- (1 + (x^2 / df))^(-(df + 1) / 2)
-  return(gamma_term * expression_term)
-}
-
-# Numerische Integration mit der Trapezregel
-trapezoidal_rule <- function(f, a, b, n, df) {
-  h <- (b - a) / n
-  sum <- 0
-  for (i in 1:n) {
-    x0 <- a + (i - 1) * h
-    x1 <- a + i * h
-    sum <- sum + (h / 2) * (f(x0, df) + f(x1, df))
+# Function to calculate the Beta probability density function (PDF)
+pdf <- function(x, shape1, shape2) {
+  if (any(x < 0) || any(x > 1) || shape1 <= 0 || shape2 <= 0) {
+    stop("Invalid parameters for Beta distribution.")
   }
-  return(sum)
+  
+  beta.1 <- function(alpha, beta) {
+    (gamma(alpha) * gamma(beta))/gamma(alpha + beta)
+  }
+  
+  # Beta PDF
+  pdf <- x^(shape1 - 1) * (1 - x)^(shape2 - 1) / beta.1(shape1, shape2)
+  
+  return(pdf)
 }
 
-# Berechnung des Quantils der t-Verteilung
-quantile_t <- function(p, df, tol = 1e-6, max_iter = 1000) {
-  x <- 0
-  a <- -1000  # Untere Grenze für die Integration
-  for (i in 1:max_iter) {
-    pdf <- dt_t_distribution(x, df)
-    cdf <- trapezoidal_rule(dt_t_distribution, a, x, 1000, df) / 
-      trapezoidal_rule(dt_t_distribution, a, Inf, 1000, df)
-    if (abs(cdf - p) < tol) {
-      break
+# Function to calculate the Beta cumulative distribution function (CDF)
+cdf <- function(x, shape1, shape2) {
+  if (any(x < 0) || any(x > 1) || shape1 <= 0 || shape2 <= 0) {
+    stop("Invalid parameters for Beta distribution.")
+  }
+  
+  beta.1 <- function(alpha, beta) {
+    (gamma(alpha) * gamma(beta))/gamma(alpha + beta)
+  }
+  
+  # Beta CDF (using numerical integration)
+  cdf <- sapply(x, function(x_i) {
+    integrate(function(t) t^(shape1 - 1) * (1 - t)^(shape2 - 1), lower = 0, upper = x_i)$value
+  })
+  
+  beta <- beta.1(shape1, shape2)
+  
+  return(cdf/beta)
+}
+
+
+# Function to calculate quantiles for the Beta distribution (numerical inversion)
+qbeta_custom <- function(p, shape1, shape2) {
+  if (any(p < 0) || any(p > 1) || shape1 <= 0 || shape2 <= 0) {
+    stop("Invalid parameters for Beta distribution.")
+  }
+  
+  # Inverse of the normalized Beta CDF (numerical inversion)
+  find_quantile <- function(prob, a, b) {
+    lower <- 0
+    upper <- 1
+    
+    while (upper - lower > 1e-10) {
+      mid <- (lower + upper) / 2
+      if (cdf(mid, a, b) < prob) {
+        lower <- mid
+      } else {
+        upper <- mid
+      }
     }
-    x <- x - (cdf - p) / pdf
+    
+    return(mid)
   }
-  return(x)
+  
+  # Calculate quantiles using numerical inversion
+  quantiles <- sapply(p, function(prob) find_quantile(prob, shape1, shape2))
+  
+  return(quantiles)
 }
 
+cdf(0.2,1,5)
+qbeta_custom(0.1, 1, 5)
+pdf(0.2, 1, 5)
 
-# Test der Funktion
-p <- 0.95
-df <- 5
-qt(p, df)
 
-pt(2, 5)
-dt(2, 5)
+
+dbeta(0.2, 1, 5)
+pbeta(0.2,1,5)
+qbeta(0.1, 1, 2)
+
+
+hist(rbeta(1000, 1, 5))
+
+data <- read.csv("C://Users//Nikolaus Kresse//Desktop//Tests//Project1//Project1//random_t_values.csv")
+hist(data$X0.832473)
+
+hist(rnorm(5000, 10))
+
+
 

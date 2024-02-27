@@ -16,6 +16,7 @@
 #include <iostream>
 #include <cassert>
 #include <math.h>
+#include <cmath>
 #include <random>
 #include <filesystem>
 #include <Eigen/Dense>

@@ -56,24 +56,45 @@ namespace copula {
             template <typename T1, typename T2>
             static inline typename T1::value_type Quantile(const T1& x, T2 q);
 
+            inline static double trapezoidal(double a, double b, int n, std::function<double(double)> f);
+
             // Random Number Generation
             std::vector<double> generate_uniform(int N_sim);
             std::vector<double> generate_gaussian(int N_sim, double mean, double stddev);
             std::vector<double> generate_pareto(int N, double g, double k);
             std::vector<double> generate_cauchy(int N, double location, double scale);
             std::vector<double> generate_beta(int N, double alpha, double beta);
+            std::vector<double> generate_t(int N, int df);
 
             // Normal distribution
-            inline static double pnorm(double value);
-            inline static double qnorm(double p, double mean = 0, double sigma = 1);
-            inline static double qunif(double p, double a = 0.0, double b = 1.0);
+            inline static double norm_cdf(double value);
+            inline static double norm_pdf(double value);
+            inline static double norm_q(double p, double mean = 0, double sigma = 1);
 
-            //Student's t distribution
-            inline static double trapezoidal(double a, double b, int n, std::function<double(double)> f);
-            inline static double pdf_t(double x, int df);
-            inline static double cdf_t(double x, int df);
-            inline static double q_t(double p, int df, double tol = 1e-6, int max_iter = 1000);
-            std::vector<double> rt(int n, int df);
+            // Uniform distribution
+            inline static double unif_pdf(double x, double a = 0.0, double b = 1.0);
+            inline static double unif_cdf(double x, double a = 0.0, double b = 1.0);
+            inline static double unif_q(double p, double a = 0.0, double b = 1.0);
+
+            // Student's t distribution            
+            inline static double t_pdf(double x, int df);
+            inline static double t_cdf(double x, int df);
+            inline static double t_q(double p, int df, double tol = 1e-6, int max_iter = 1000);
+
+            // Beta distribution
+            inline static double beta_pdf(double x, double shape1, double shape2);
+            inline static double beta_cdf(double x, double shape1, double shape2);
+            inline static double beta_q(double p, double shape1, double shape2, double tol = 1e-6, int max_iter = 1000);
+
+            // Gamma distribution
+            inline static double gamma_pdf(double x, double shape, double scale);
+            inline static double gamma_cdf(double x, double shape, double scale);
+            inline static double gamma_q(double p, double shape, double scale, double tol = 1e-6, int max_iter = 1000);
+
+            // Exponential distribution
+            inline static double exp_pdf(double x, double rate);
+            inline static double exp_cdf(double x, double rate);
+            inline static double exp_q(double p, double rate);
 
             // Plot Distribution
             static void plotDistribution(std::vector<double>& data);

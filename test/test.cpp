@@ -21,16 +21,46 @@ int main()
 {
     copula::getwd();
 
-    std::cout << copula::StatsFunctions::q_t(0.95, 5) << std::endl;
+    // Normal distribution
+    std::cout << "\n--- Normal Distribution ---" << std::endl;
+    std::cout << "Normal PDF at 0: " << copula::StatsFunctions::norm_pdf(0) << std::endl;
+    std::cout << "Normal CDF at 0.5: " << copula::StatsFunctions::norm_cdf(0.5) << std::endl;
+    std::cout << "Normal quantile for 0.2: " << copula::StatsFunctions::norm_q(0.2, 0, 1) << std::endl;
 
-    std::cout << copula::StatsFunctions::cdf_t(2, 5) << std::endl;
+    // Uniform distribution
+    std::cout << "\n--- Uniform Distribution ---" << std::endl;
+    std::cout << "Uniform PDF at 0.3: " << copula::StatsFunctions::unif_pdf(0.3, 0, 1) << std::endl;
+    std::cout << "Uniform CDF at 0.7: " << copula::StatsFunctions::unif_cdf(0.7, 0, 1) << std::endl;
+    std::cout << "Uniform quantile for 0.4: " << copula::StatsFunctions::unif_q(0.4, 0, 1) << std::endl;
 
-    std::cout << copula::StatsFunctions::pdf_t(2, 5) << std::endl;
+    // Gamma distribution
+    std::cout << "\n--- Gamma Distribution ---" << std::endl;
+    std::cout << "Gamma PDF at 2.5: " << copula::StatsFunctions::gamma_pdf(2.5, 2, 1) << std::endl;
+    std::cout << "Gamma CDF at 3.0: " << copula::StatsFunctions::gamma_cdf(3.0, 2, 1) << std::endl;
+    std::cout << "Gamma quantile for 0.8: " << copula::StatsFunctions::gamma_q(0.8, 2, 1) << std::endl;
+
+    // Exponential distribution
+    std::cout << "\n--- Exponential Distribution ---" << std::endl;
+    std::cout << "Exponential PDF at 1.5: " << copula::StatsFunctions::exp_pdf(1.5, 2) << std::endl;
+    std::cout << "Exponential CDF at 2.0: " << copula::StatsFunctions::exp_cdf(2.0, 2) << std::endl;
+    std::cout << "Exponential quantile for 0.6: " << copula::StatsFunctions::exp_q(0.6, 2) << std::endl;
+
+    // Beta distribution
+    std::cout << "\n--- Beta Distribution ---" << std::endl;
+    std::cout << "Beta PDF at 0.2: " << copula::StatsFunctions::beta_cdf(0.2, 1, 5) << std::endl;
+    std::cout << "Beta CDf at 0.1: " << copula::StatsFunctions::beta_pdf(0.2, 1, 5) << std::endl;
+    std::cout << "Beta quantile for 0.2: " << copula::StatsFunctions::beta_q(0.1, 1, 5) << std::endl;
+
+    // Student's t-distribution
+    std::cout << "\n--- Student's t Distribution ---" << std::endl;
+    std::cout << "Student t PDF at 2: " << copula::StatsFunctions::t_pdf(2, 5) << std::endl;
+    std::cout << "Student t CDF at 2: " << copula::StatsFunctions::t_cdf(2, 5) << std::endl;
+    std::cout << "Student t quantile for 0.95: " << copula::StatsFunctions::t_q(0.95, 5) << std::endl;
 
     // Test if gradient computation works
     std::vector<double> result = copula::NumericalDifferentiation::gradient(schaffer_N6, { 1, 2 });
 
-    std::cout << "Gradient: ";
+    std::cout << "\nGradient: ";
     for (double val : result) {
         std::cout << val << " ";
     }
@@ -40,7 +70,7 @@ int main()
     
     std::vector<double> random;
 
-    std::cout << "Choose a distribution:" << std::endl;
+    std::cout << "\n--- Choose a distribution ---" << std::endl;
     std::cout << "1. Uniform Distribution" << std::endl;
     std::cout << "2. Gaussian Distribution" << std::endl;
     std::cout << "3. Pareto Distribution" << std::endl;
@@ -85,6 +115,8 @@ int main()
     double val1 = Frank.pdfExpr({ 0.1, 0.2 });
     std::cout << val1 << std::endl;
 
+
+    std::cout << "\n--- Frank Copula ---" << std::endl;
     auto copulaPair = Frank.rfrankCopula(5000); 
     auto copulaPairParteo = Frank.Frank_paretoMarginals(500, 20, 100, 100, 50, 5);
     
@@ -103,7 +135,8 @@ int main()
 
     copula::GaussCopula Gauss(false);
 
-    auto result_1 = Gauss.rGaussCopula(1000, mean, sigma, [](double x) { return copula::StatsFunctions::qunif(x); }, [](double x) { return copula::StatsFunctions::qunif(x); });
+    std::cout << "\n--- Gauss Copula ---" << std::endl;
+    auto result_1 = Gauss.rGaussCopula(1000, mean, sigma, [](double x) { return copula::StatsFunctions::unif_q(x); }, [](double x) { return copula::StatsFunctions::unif_q(x); });
 
     #ifdef _M_X64
         Gauss.PlotCopula(result_1, sigma(0, 1));
