@@ -176,14 +176,14 @@ qbeta_custom <- function(p, shape1, shape2) {
     stop("Invalid parameters for Beta distribution.")
   }
   
-  # Numerical inversion to find quantiles
+  # Inverse of the normalized Beta CDF (numerical inversion)
   find_quantile <- function(prob, a, b) {
     lower <- 0
     upper <- 1
     
     while (upper - lower > 1e-10) {
       mid <- (lower + upper) / 2
-      if (pbeta_custom(mid, a, b) < prob) {
+      if (cdf(mid, a, b) < prob) {
         lower <- mid
       } else {
         upper <- mid
