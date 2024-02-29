@@ -106,6 +106,7 @@ namespace copula {
             using QuantileFunction = std::function<double(double)>;
         
             Eigen::MatrixXd rmvnorm_samples(int n, const Eigen::VectorXd& mean, const Eigen::MatrixXd& sigma);
+            Eigen::MatrixXd rmvnorm_samples(int n, const double Mean, const double& Sigma);
             std::pair<std::vector<double>, std::vector<double>> rGaussCopula(int N_sim, const Eigen::VectorXd& mean, const Eigen::MatrixXd& sigma, QuantileFunction f1, QuantileFunction f2);
             
             void PlotCopula(std::pair<std::vector<double>, std::vector<double>>& copula_data, double cor);
@@ -156,6 +157,75 @@ namespace copula {
             std::vector<std::vector<double>> f_CopulasEmpirical(const std::vector<std::vector<double>>& data, std::vector<EVTCopula::GPDResult>& fit);
             double f_TailDep(const std::vector<std::vector<double >>& data, double threshold);
     };
+
+    class __declspec(dllimportexport) CopulaSampling {
+        private:
+            enum MarginalType {
+                NORMAL,
+                UNIFORM,
+                GAMMA,
+                EXPONENTIAL,
+                BETA,
+                UNKNOWN
+            };
+
+            struct DistributionParams {
+                std::vector<double> parameters;
+            };
+
+            MarginalType getMarginalType(const std::string& type) {
+                if (type == "normal") {
+                    return NORMAL;
+                }
+                else if (type == "uniform") {
+                    return UNIFORM;
+                }
+                else if (type == "gamma") {
+                    return GAMMA;
+                }
+                else if (type == "exponential") {
+                    return EXPONENTIAL;
+                }
+                else if (type == "beta") {
+                    return BETA;
+                }
+                else {
+                    return UNKNOWN;
+                }
+            }
+        
+            std::function<double(double)> getQuantileFunction(MarginalType type, const std::vector<double>& parameters);
+
+        public:
+            struct __declspec(dllimportexport) MarginalInfo {
+                MarginalType type1;
+                MarginalType type2;
+                DistributionParams params1;
+                DistributionParams params2;
+
+                MarginalInfo(MarginalType t1, MarginalType t2, const std::vector<double>& p1, const std::vector<double>& p2)
+                    : type1(t1), type2(t2), params1({ p1 }), params2({ p2 }) {}
+            };
+
+            struct __declspec(dllimportexport) CopulaInfo {
+                std::string type;
+                std::vector<double> parameters;
+            };
+
+            MarginalInfo getMarginalInfo(const std::string& type1, const std::vector<double>& parameters1,
+                const std::string& type2, const std::vector<double>& parameters2) {
+                if ((type1 == "normal" || type1 == "uniform" || type1 == "gamma" || type1 == "exponential" || type1 == "beta") &&
+                    (type2 == "normal" || type2 == "uniform" || type2 == "gamma" || type2 == "exponential" || type2 == "beta")) {
+                    return { getMarginalType(type1), getMarginalType(type2), { parameters1 }, { parameters2 } };
+                }
+                else {
+                    return { UNKNOWN, UNKNOWN, {}, {} };
+                }
+            }
+
+            static std::vector<std::vector<double>> rCopula(int n, const CopulaInfo& copula, const MarginalInfo& marginals);
+
+        };
 }
 
 template <typename T1, typename T2>

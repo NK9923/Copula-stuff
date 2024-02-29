@@ -24,6 +24,7 @@
     <ClInclude Include="include\pch.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="CopulaSampling.cpp" />
     <ClCompile Include="src\differentiation.cpp" />
     <ClCompile Include="src\dllmain.cpp" />
     <ClCompile Include="src\EVTCopula.cpp" />

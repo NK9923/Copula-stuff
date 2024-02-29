@@ -101,6 +101,14 @@ int main()
         return 1;
     }
 
+    // Random number generation fom Copula
+    copula::CopulaSampling copulaObj;
+    copula::CopulaSampling::MarginalInfo marginalInfo = copulaObj.getMarginalInfo("uniform", { 0.0, 1.0 }, "exponential", { 2.0 });
+    copula::CopulaSampling::CopulaInfo copulaInfo = { "normal", { 0.0, 0.9 } };
+
+    using CSVValue = std::variant<int, double, std::string>;
+    std::vector<std::vector<double>> result = copula::CopulaSampling::rCopula(1000, copulaInfo, marginalInfo);
+
     // Test plot distribution
     #ifdef _M_X64
         statsObj.plotDistribution(random);

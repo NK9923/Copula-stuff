@@ -1,0 +1,131 @@
+#include "Header.h"
+#include "pch.h"
+
+namespace copula {
+
+    template <typename T>
+    struct is_vector : std::false_type {};
+
+    template <typename T>
+    struct is_vector<std::vector<T>> : std::true_type {};
+
+    template <typename T>
+    T generate_uniform(int N_sim) {
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_real_distribution<T> dis(0.0, 1.0);
+
+        if constexpr (is_vector<T>::value) {
+            std::vector<typename T::value_type> randomValues(N_sim);
+            for (int i = 0; i < N_sim; ++i) {
+                randomValues[i] = dis(gen);
+            }
+            return randomValues;
+        }
+        else {
+            return dis(gen);
+        }
+    }
+
+    std::function<double(double)> CopulaSampling::getQuantileFunction(MarginalType type, const std::vector<double>& parameters) {
+        switch (type) {
+        case NORMAL:
+            return std::bind(StatsFunctions::norm_q, std::placeholders::_1, parameters[0], parameters[1]);
+        case UNIFORM:
+            return std::bind(StatsFunctions::unif_q, std::placeholders::_1, parameters[0], parameters[1]);
+        case GAMMA:
+            return std::bind(StatsFunctions::gamma_q, std::placeholders::_1, parameters[0], parameters[1], 1e-6, 1000);
+        case EXPONENTIAL:
+            return std::bind(StatsFunctions::exp_q, std::placeholders::_1, parameters[0]);
+        case BETA:
+            return std::bind(StatsFunctions::beta_q, std::placeholders::_1, parameters[0], parameters[1], 1e-6, 1000);
+        case UNKNOWN:
+            throw std::invalid_argument("Unsupported marginal distribution type");
+        }
+    }
+
+    template <typename T>
+    T runif(int N_sim) {
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_real_distribution<T> dis(0.0, 1.0);
+
+        if constexpr (is_vector<T>::value) {
+            std::vector<typename T::value_type> randomValues(N_sim);
+            for (int i = 0; i < N_sim; ++i) {
+                randomValues[i] = dis(gen);
+            }
+            return randomValues;
+        }
+        else {
+            return dis(gen);
+        }
+    }
+
+    std::vector<std::vector<double>> CopulaSampling::rCopula(int n, const CopulaInfo& copula, const MarginalInfo& marginals) {
+        std::vector<double> u(n);
+        std::vector<double> v(n);
+
+        std::vector<std::vector<double>> result;
+        result.resize(n, std::vector<double>(2));
+
+        if (copula.type == "independent") {
+            for (int i = 0; i < n; ++i) {
+                u[i] = runif<double>(1);
+                v[i] = runif<double>(1);
+            }
+        }
+        else if (copula.type == "normal") {
+            Eigen::MatrixXd samples = GaussCopula().rmvnorm_samples(n, copula.parameters[0], copula.parameters[1]);
+            for (int i = 0; i < n; ++i) {
+                u[i] = StatsFunctions::norm_cdf(samples(i, 0));
+                v[i] = StatsFunctions::norm_cdf(samples(i, 1));
+            }
+        }
+        else if (copula.type == "clayton") {
+            for (int i = 0; i < n; ++i) {
+                double random1 = runif<double>(1); // u
+                double random2 = runif<double>(1); // v
+
+                u[i] = random1;
+                v[i] = std::pow(std::pow(random1, -copula.parameters[0]) + std::pow(random2, (-copula.parameters[0] / (copula.parameters[0] + 1))) - 1.0, -1.0 / copula.parameters[0]);
+            }
+        }
+        else if (copula.type == "gumbel") {
+            // Need to be checked
+            for (int i = 0; i < n; ++i) {
+                double random1 = runif<double>(1); // u
+                double random2 = runif<double>(1); // v
+
+                u[i] = std::pow(-std::log(random1), 1.0 / random2);
+                v[i] = u[i] * (-std::log(random1));
+            }
+        }
+        else if (copula.type == "frank") {
+            for (int i = 0; i < n; ++i) {
+                double random1 = runif<double>(1); // u
+                double random2 = runif<double>(1); // v
+
+                double a = -abs(copula.parameters[0]);
+
+                double tmp = -1 / a * std::log1p(-random2 * std::expm1(-a) / (std::exp(-a * random1) * (random2 - 1) - random2));
+                u[i] = random1;
+                v[i] = (copula.parameters[0] > 0) ? (1 - tmp) : tmp;
+            }
+        }
+        else {
+            throw std::invalid_argument("Invalid copula type.");
+        }
+
+        std::function<double(double)> qdfExpr1 = CopulaSampling().getQuantileFunction(marginals.type1, marginals.params1.parameters);
+        std::function<double(double)> qdfExpr2 = CopulaSampling().getQuantileFunction(marginals.type2, marginals.params2.parameters);
+
+
+        for (int i = 0; i < n; ++i) {
+            result[i][0] = qdfExpr1(u[i]);
+            result[i][1] = qdfExpr2(v[i]);
+        }
+
+        return result;
+    }
+}
