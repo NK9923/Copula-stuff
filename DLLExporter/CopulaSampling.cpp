@@ -27,23 +27,6 @@ namespace copula {
         }
     }
 
-    std::function<double(double)> CopulaSampling::getQuantileFunction(MarginalType type, const std::vector<double>& parameters) {
-        switch (type) {
-        case NORMAL:
-            return std::bind(StatsFunctions::norm_q, std::placeholders::_1, parameters[0], parameters[1]);
-        case UNIFORM:
-            return std::bind(StatsFunctions::unif_q, std::placeholders::_1, parameters[0], parameters[1]);
-        case GAMMA:
-            return std::bind(StatsFunctions::gamma_q, std::placeholders::_1, parameters[0], parameters[1], 1e-6, 1000);
-        case EXPONENTIAL:
-            return std::bind(StatsFunctions::exp_q, std::placeholders::_1, parameters[0]);
-        case BETA:
-            return std::bind(StatsFunctions::beta_q, std::placeholders::_1, parameters[0], parameters[1], 1e-6, 1000);
-        case UNKNOWN:
-            throw std::invalid_argument("Unsupported marginal distribution type");
-        }
-    }
-
     template <typename T>
     T runif(int N_sim) {
         std::random_device rd;
@@ -59,6 +42,23 @@ namespace copula {
         }
         else {
             return dis(gen);
+        }
+    }
+
+    std::function<double(double)> CopulaSampling::getQuantileFunction(MarginalType type, const std::vector<double>& parameters) {
+        switch (type) {
+        case NORMAL:
+            return std::bind(StatsFunctions::norm_q, std::placeholders::_1, parameters[0], parameters[1]);
+        case UNIFORM:
+            return std::bind(StatsFunctions::unif_q, std::placeholders::_1, parameters[0], parameters[1]);
+        case GAMMA:
+            return std::bind(StatsFunctions::gamma_q, std::placeholders::_1, parameters[0], parameters[1], 1e-6, 1000);
+        case EXPONENTIAL:
+            return std::bind(StatsFunctions::exp_q, std::placeholders::_1, parameters[0]);
+        case BETA:
+            return std::bind(StatsFunctions::beta_q, std::placeholders::_1, parameters[0], parameters[1], 1e-6, 1000);
+        case UNKNOWN:
+            throw std::invalid_argument("Unsupported marginal distribution type");
         }
     }
 
@@ -119,7 +119,6 @@ namespace copula {
 
         std::function<double(double)> qdfExpr1 = CopulaSampling().getQuantileFunction(marginals.type1, marginals.params1.parameters);
         std::function<double(double)> qdfExpr2 = CopulaSampling().getQuantileFunction(marginals.type2, marginals.params2.parameters);
-
 
         for (int i = 0; i < n; ++i) {
             result[i][0] = qdfExpr1(u[i]);
