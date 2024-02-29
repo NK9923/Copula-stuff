@@ -50,7 +50,7 @@
     <ClCompile Include="src\Statsfunctions.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="CopulaSampling.cpp">
+    <ClCompile Include="src\CopulaSampling.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
   </ItemGroup>
