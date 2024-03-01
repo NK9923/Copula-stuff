@@ -401,7 +401,7 @@ namespace copula {
 		return -log(1 - p) / lambda;
 	}
 
-    // t-distribution with location and scale
+    // Beta-distribution with location and scale
 
     double beta(double x, double y) {
         return tgamma(x) * tgamma(y) / tgamma(x + y);
