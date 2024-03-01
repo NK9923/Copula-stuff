@@ -62,6 +62,7 @@ namespace copula {
             std::vector<double> generate_uniform(int N_sim);
             std::vector<double> generate_gaussian(int N_sim, double mean, double stddev);
             std::vector<double> generate_pareto(int N, double g, double k);
+            std::vector<double> generate_chi_squared(int N, double df);
             std::vector<double> generate_cauchy(int N, double location, double scale);
             std::vector<double> generate_beta(int N, double alpha, double beta);
             std::vector<double> generate_t(int N, int df);
@@ -110,7 +111,7 @@ namespace copula {
             std::pair<std::vector<double>, std::vector<double>> rGaussCopula(int N_sim, const Eigen::VectorXd& mean, const Eigen::MatrixXd& sigma, QuantileFunction f1, QuantileFunction f2);
             
             void PlotCopula(std::pair<std::vector<double>, std::vector<double>>& copula_data, double cor);
-            void printMatrix(const Eigen::MatrixXd& matrix, const std::string& name);
+            void printMatrix(const Eigen::MatrixXd& matrix, const std::string& name, int rowsToPrint = 5);
         private:
             bool debug;
     };
@@ -195,6 +196,7 @@ namespace copula {
             }
         
             std::function<double(double)> getQuantileFunction(MarginalType type, const std::vector<double>& parameters);
+            bool debug = false; // change if EigenOutput is needed to be visible for debugging purpose
 
         public:
             struct __declspec(dllimportexport) MarginalInfo {
@@ -223,8 +225,9 @@ namespace copula {
                 }
             }
 
-            static std::vector<std::vector<double>> rCopula(int n, const CopulaInfo& copula, const MarginalInfo& marginals);
-
+            Eigen::MatrixXd rmvt_samples(int n, double df, double sigma, double mean = 0);
+            static std::pair<std::vector<double>, std::vector<double>> rCopula(int n, const CopulaInfo& copula, const MarginalInfo& marginals);
+            void PlotRCopula(std::pair<std::vector<double>, std::vector<double>>& copula_data, std::string CopulaTyp, std::string mar1, std::string mar2, std::string filename);
         };
 }
 

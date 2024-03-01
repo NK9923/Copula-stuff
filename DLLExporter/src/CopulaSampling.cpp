@@ -62,12 +62,38 @@ namespace copula {
         }
     }
 
-    std::vector<std::vector<double>> CopulaSampling::rCopula(int n, const CopulaInfo& copula, const MarginalInfo& marginals) {
+    Eigen::MatrixXd CopulaSampling::rmvt_samples(int n, double df, double sigma, double mean) {
+        assert(df >= 0);
+
+        Eigen::MatrixXd standard_normal = GaussCopula().rmvnorm_samples(n, mean, sigma);
+        auto chi_squared_vector = StatsFunctions().generate_chi_squared(n, df);
+        Eigen::VectorXd Chi_squared = Eigen::Map<const Eigen::VectorXd>(chi_squared_vector.data(), chi_squared_vector.size());
+
+        assert(Chi_squared.minCoeff() > 0);
+
+        if (this->debug) {
+            GaussCopula().printMatrix(standard_normal, "Standard Normal");
+            GaussCopula().printMatrix(Chi_squared, "Chi Squared");
+            GaussCopula().printMatrix(Chi_squared / df, "Chi Squared / df");
+            GaussCopula().printMatrix((1.0 / (Chi_squared / df).array().sqrt()).matrix(), "(1.0 / (Chi_squared / df).array().sqrt()).matrix()");
+            GaussCopula().printMatrix(standard_normal.array().topRows(5), "standard_normal.array()");
+            GaussCopula().printMatrix((1.0 / (Chi_squared / df).array().sqrt()).matrix().array().replicate(1, standard_normal.cols()).topRows(5), "Multiply");
+
+        }
+
+        Eigen::MatrixXd random_t = standard_normal.array() * ((1.0 / (Chi_squared / df).array().sqrt()).matrix().array().replicate(1, standard_normal.cols()));
+
+        if (this->debug) {
+            GaussCopula().printMatrix(random_t.topRows(5), "random_t");
+        }
+
+        random_t.colwise() += Eigen::VectorXd::Constant(n, mean);
+        return random_t;
+    }
+
+    std::pair<std::vector<double>, std::vector<double>> CopulaSampling::rCopula(int n, const CopulaInfo& copula, const MarginalInfo& marginals) {
         std::vector<double> u(n);
         std::vector<double> v(n);
-
-        std::vector<std::vector<double>> result;
-        result.resize(n, std::vector<double>(2));
 
         if (copula.type == "independent") {
             for (int i = 0; i < n; ++i) {
@@ -80,6 +106,13 @@ namespace copula {
             for (int i = 0; i < n; ++i) {
                 u[i] = StatsFunctions::norm_cdf(samples(i, 0));
                 v[i] = StatsFunctions::norm_cdf(samples(i, 1));
+            }
+        }
+        else if (copula.type == "t") {
+            Eigen::MatrixXd samples = CopulaSampling().rmvt_samples(n, copula.parameters[0], copula.parameters[1], copula.parameters[2]);
+            for (int i = 0; i < n; ++i) {
+                u[i] = StatsFunctions::t_pdf(samples(i, 0), copula.parameters[0]);
+                v[i] = StatsFunctions::t_pdf(samples(i, 1), copula.parameters[0]);
             }
         }
         else if (copula.type == "clayton") {
@@ -121,10 +154,13 @@ namespace copula {
         std::function<double(double)> qdfExpr2 = CopulaSampling().getQuantileFunction(marginals.type2, marginals.params2.parameters);
 
         for (int i = 0; i < n; ++i) {
-            result[i][0] = qdfExpr1(u[i]);
-            result[i][1] = qdfExpr2(v[i]);
+            u[i] = qdfExpr1(u[i]);
+            v[i] = qdfExpr2(v[i]);
         }
 
-        return result;
+        std::pair<std::vector<double>, std::vector<double>> result_copula;
+        result_copula.first = u;
+        result_copula.second = v;
+        return result_copula;
     }
 }

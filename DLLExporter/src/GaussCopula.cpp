@@ -5,9 +5,9 @@
 
 namespace copula {
 
-    void GaussCopula::printMatrix(const Eigen::MatrixXd& matrix, const std::string& name) {
+    void GaussCopula::printMatrix(const Eigen::MatrixXd& matrix, const std::string& name, int rowsToPrint) {
         if (this->debug) {
-            std::cout << name << ":\n" << matrix << "\n\n";
+            std::cout << name << " (first " << rowsToPrint << " rows):\n" << matrix.topRows(rowsToPrint) << "\n\n";
         }
     }
 

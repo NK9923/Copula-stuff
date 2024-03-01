@@ -154,6 +154,20 @@ namespace copula {
         return randomValues;
     }
 
+    std::vector<double> StatsFunctions::generate_chi_squared(int N, double df) {
+        std::random_device rd{};
+        std::mt19937 gen{ rd() };
+        std::chi_squared_distribution<double> dist{ df };
+
+        std::vector<double> randomValues;
+
+        for (int i = 0; i < N; ++i) {
+            randomValues.push_back(dist(gen));
+        }
+
+        return randomValues;
+    }
+
     std::vector<double> StatsFunctions::generate_beta(int N, double alpha, double beta) {
         std::mt19937 engine(std::random_device{}());
 
