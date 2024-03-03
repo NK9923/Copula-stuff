@@ -6,7 +6,7 @@ I was particularly interested in sampling from copulas. I focused on the followi
 
 ### Gaussian copula
 
-![Alt Text](Copula_Project/test/Figures/Gauss-Copula.png)
+![Alt Text](test/Figures/Gauss-Copula.png)
 
 In detail I implemented the Gaussian copula, which is defined as:
 
