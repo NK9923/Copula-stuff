@@ -156,7 +156,7 @@ int main()
     #ifdef _M_X64
         Frank.PlotCopula(copulaPair);
         Frank.PlotCopula(copulaPairParteo);
-    
+    #endif
 
     Eigen::VectorXd mean(2);
     mean << 0, 0;
