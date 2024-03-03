@@ -25,14 +25,9 @@ For the Clayton copula I generated random uniform numbers and applied the invers
 
 I also performed random number generation from the Frank-copula.
 
-\[
-\begin{align*}
-&\text{double tmp} = -\frac{1}{a} \cdot \log1p\left(-\frac{random2 \cdot \expm1(-a)}{\left(\exp(-a \cdot random1) \cdot (random2 - 1)\right) - random2}\right); \\
-&u[i] \sim \text{random1}; \\
-&v[i] = (\text{copula.parameters[0]} > 0) ? (1 - \text{tmp}) : \text{tmp};
-\end{align*}
-\]
-
+$tmp= -\frac{1}{a} \cdot \log1p\left(-\frac{random2 \cdot \expm1(-a)}{\left(\exp(-a \cdot random1) \cdot (random2 - 1)\right) - random2}\right);$ 
+$u[i] \sim \text{random1};$
+$v[i] = (\text{copula.parameters[0]} > 0) ? (1 - \text{tmp}) : \text{tmp};$
 
 ### EVT copula and tail dependence
 
@@ -43,3 +38,7 @@ This is still a toDo. I would like to implement the extrem value copula and the 
 The plotting was done with pybind11 and matplotlib. Thus, if one would like to use this .dll one either needs to change the path to the python lib files as well as to the pybind11 Header-files, or alternatively remove the plotting class entirely and recompile the project. Other than that I used the Eigen library, which is header-only. Thus one would only have to include the Header files.   
 
 ## To-Do's
+
+- Define pdf and cdf functions for the copulas. Double check the implementations for generating random variables from the copulas.
+- Implement Tail-dependence
+- experiment with vine-copulas
