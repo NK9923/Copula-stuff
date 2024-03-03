@@ -38,3 +38,7 @@ This is still a toDo. I would like to implement the extrem value copula and the 
 The plotting was done with pybind11 and matplotlib. Thus, if one would like to use this .dll one either needs to change the path to the python lib files as well as to the pybind11 Header-files, or alternatively remove the plotting class entirely and recompile the project. Other than that I used the Eigen library, which is header-only. Thus one would only have to include the Header files.   
 
 ## To-Do's
+
+- Define pdf and cdf functions for the copulas. Double check the implementations for generating random variables from the copulas.
+- Implement Tail-dependence
+- experiment with vine-copulas
