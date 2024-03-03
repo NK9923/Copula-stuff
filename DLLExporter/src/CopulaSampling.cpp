@@ -78,7 +78,6 @@ namespace copula {
             GaussCopula().printMatrix((1.0 / (Chi_squared / df).array().sqrt()).matrix(), "(1.0 / (Chi_squared / df).array().sqrt()).matrix()");
             GaussCopula().printMatrix(standard_normal.array().topRows(5), "standard_normal.array()");
             GaussCopula().printMatrix((1.0 / (Chi_squared / df).array().sqrt()).matrix().array().replicate(1, standard_normal.cols()).topRows(5), "Multiply");
-
         }
 
         Eigen::MatrixXd random_t = standard_normal.array() * ((1.0 / (Chi_squared / df).array().sqrt()).matrix().array().replicate(1, standard_normal.cols()));
@@ -124,6 +123,7 @@ namespace copula {
                 v[i] = std::pow(std::pow(random1, -copula.parameters[0]) + std::pow(random2, (-copula.parameters[0] / (copula.parameters[0] + 1))) - 1.0, -1.0 / copula.parameters[0]);
             }
         }
+        /* Not correct
         else if (copula.type == "gumbel") {
             // Need to be checked
             for (int i = 0; i < n; ++i) {
@@ -134,6 +134,7 @@ namespace copula {
                 v[i] = u[i] * (-std::log(random1));
             }
         }
+        */
         else if (copula.type == "frank") {
             for (int i = 0; i < n; ++i) {
                 double random1 = runif<double>(1); // u

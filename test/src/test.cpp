@@ -108,25 +108,37 @@ int main()
     copula::CopulaSampling::MarginalInfo marginalInfo_Normal = copulaObj.getMarginalInfo("uniform", { 0.0, 1.0 }, "exponential", { 2.0 });
     copula::CopulaSampling::CopulaInfo copulaInfoNormal = { "normal", { 0.0, 0.9 } };
     auto result_normal = copula::CopulaSampling::rCopula(1000, copulaInfoNormal, marginalInfo_Normal);
-    copulaObj.PlotRCopula(result_normal, "Random numbers from normal Copula", "unif(0,1)", "exp(2)", "Normal_Exp_Unif");
+    
+    #ifdef _M_X64
+        copulaObj.PlotRCopula(result_normal, "Random numbers from normal Copula", "unif(0,1)", "exp(2)", "Normal_Exp_Unif");
+    #endif
 
     // Random number generation from t Copula
-    copula::CopulaSampling::MarginalInfo marginalInfo1 = copulaObj.getMarginalInfo("exponential", { 5.0 }, "exponential", { 2.0 });
+    copula::CopulaSampling::MarginalInfo marginalInfo1 = copulaObj.getMarginalInfo("beta", { 2.0, 5.0 }, "beta", { 3.0, 2.0 });
     copula::CopulaSampling::CopulaInfo copulaInfot = { "t", { 4, 0.7, 0 } };
     auto result_t = copula::CopulaSampling::rCopula(1000, copulaInfot, marginalInfo1);
-    copulaObj.PlotRCopula(result_t, "Random numbers from t-Copula", "exp(5)", "exp(2)", "T_Exp_Exp");
+    
+    #ifdef _M_X64
+        copulaObj.PlotRCopula(result_t, "Random numbers from t-Copula", "beta(2,5)", "beta(3,2)", "T_beta_beta");
+    #endif
 
     // Random number generation from Frank Copula
     copula::CopulaSampling::MarginalInfo marginalInfofrank = copulaObj.getMarginalInfo("beta", { 2.0, 5.0 }, "beta", { 3.0, 2.0 });
     copula::CopulaSampling::CopulaInfo copulaInfoFrank = { "frank", { 4.0 } };
     auto result_Frank = copula::CopulaSampling::rCopula(1000, copulaInfoFrank, marginalInfofrank);
-    copulaObj.PlotRCopula(result_Frank, "Random numbers from Frank copula", "beta(2,5)", "beta(3,2)", "Frank_beta_beta");
+   
+    #ifdef _M_X64
+        copulaObj.PlotRCopula(result_Frank, "Random numbers from Frank copula", "beta(2,5)", "beta(3,2)", "Frank_beta_beta");
+    #endif
 
     // Random number generation from Clayton Copula
     copula::CopulaSampling::MarginalInfo marginalInfoClayton = copulaObj.getMarginalInfo("exponential", { 2.0 }, "uniform", { 0.0, 1.0 });
     copula::CopulaSampling::CopulaInfo copulaInfoClayton = { "clayton", { 2.0 } };
     auto result_Clayton = copula::CopulaSampling::rCopula(1000, copulaInfoClayton, marginalInfoClayton);
-    copulaObj.PlotRCopula(result_Clayton, "Random numbers from Clayton copula", "exp(2)", "unif(0,1)", "Clayton_exp_unif");
+    
+    #ifdef _M_X64
+        copulaObj.PlotRCopula(result_Clayton, "Random numbers from Clayton copula", "exp(2)", "unif(0,1)", "Clayton_exp_unif");
+    #endif
 
 
     // Test values CDF and PDF for Frank Copula
@@ -144,7 +156,7 @@ int main()
     #ifdef _M_X64
         Frank.PlotCopula(copulaPair);
         Frank.PlotCopula(copulaPairParteo);
-    #endif
+    
 
     Eigen::VectorXd mean(2);
     mean << 0, 0;
