@@ -6,7 +6,7 @@ I was particularly interested in sampling from copulas. I focused on the followi
 
 ### Gaussian copula
 
-![Alt Text](test/Figures/Gauss-Copula.png)
+
 
 In detail I implemented the Gaussian copula, which is defined as:
 
@@ -14,14 +14,19 @@ $C_\Sigma (u_1,u_2) = \Phi_\Sigma(\Phi^{-1}(u_1),\Phi^{-1}(u_2))$
 
 where $\Phi_R$ is the bivariate normal cdf with covariance matrix $\Sigma$ (equal to the correlation matrix), and $\Phi^{-1}$ is the quantile normal function. For the ordinary Gaussian copula I sampled from a multivariate normal distribution applied the distribution function of the standard normal and took the quantile to generate random variables. I still need to implement some functions related to the Gaussian copula such as
 
+![Example the sampling from the Gauss-Copula](test/Figures/Gauss-Copula.png)
+
 ### Student t-copula
 
 I have implemented the Student t-copula. I generated random numbers from a multivariate t-distribution and applied the probability density function (PDF) of the standard t-distribution to obtain random variable samples from the copula. However, I suspect an error in the implementation, as I crosschecked my simulation results with those delivered by R, and the simulation appeared somewhat awkward.
 
+![Example the sampling from the Student T-Copula](test/Figures/T-Copula.png)
 
 ### Clayton copula
 
 For the Clayton copula I generated random uniform numbers and applied the inverse of the Clayton copula to obtain random variables. 
+
+![Example the sampling from the Clayton copula](test/Figures/Clayton-Copula.png)
 
 ### Frank copula
 
@@ -30,6 +35,9 @@ I also performed random number generation from the Frank-copula.
 $tmp= -\frac{1}{a} \cdot \log1p\left(-\frac{random2 \cdot \expm1(-a)}{\left(\exp(-a \cdot random1) \cdot (random2 - 1)\right) - random2}\right);$ 
 $u[i] \sim \text{random1};$
 $v[i] = (\text{copula.parameters[0]} > 0) ? (1 - \text{tmp}) : \text{tmp};$
+
+![Example the sampling from the Clayton copula](test/Figures/Frank-Copula.png)
+
 
 ### EVT copula and tail dependence
 
